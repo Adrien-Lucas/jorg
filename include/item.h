@@ -10,13 +10,13 @@
 typedef enum { MISC, WEAPON, ARMOR, CONSUMABLE } item_type_t;
 typedef struct
 {
-  char name[50];
+  char name[30];
   int value;
   item_type_t type;
   int power;
   char note[10];
 } item_t;
 
-item_t items[3];
+item_t items[100];
 
 #endif /* _JORG_ITEM_H */

@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "situation.h"
+#include "command.h"
 
 void line_init_nokey(line_t *ret, char *text)
 {
@@ -44,21 +46,76 @@ void line_init(line_t *ret, char *text, line_t *keyw[10])
   ret->text = text;
 }
 
+void change_situation(int index, _Bool getcmd)
+{
+  last_situation = current_situtation;
+  current_situtation = &situations[index];
+  printf("%s\n", current_situtation->description);
+
+  if(current_situtation->type == MERCHANT)
+  {
+    show_shop();
+  }
+
+  if(getcmd)
+    get_cmd();
+}
+
+void show_shop()
+{
+  puts("\n\x1b[35m = SHOP = \x1b[0m");
+  printf("\n\x1b[36m   N° |              NAME              | VALUE |             INFOS               \x1b[0m\n");
+  //printf("\n\x1b[36m===============================================\x1b[0m\n");
+  for(int i = 0; i < current_situtation->market_size; i++)
+  {
+    char n[2];
+    sprintf(n, "%d", i);
+
+    char name[30];
+    strcpy(name, items[current_situtation->market[i]].name);
+
+    char value[5];
+    sprintf(value, "%d", items[current_situtation->market[i]].value);
+
+    printf("\n - %-3s| %-31s| %-6s| ", n, name, value);
+  }
+}
+
 //ALL LINES
-line_t l0_3 = {"nxtsit(1)"};
-line_t l0_2 = {"Ne posez pas de questions et tout ira bien pour vous"};
-line_t l0_1 = {"Notre bon roi Maxime V"};
+line_t l3_2 = {"The dark forest is full of spiders"};
+line_t l3_1 = {"nxtsit(3)"};
 
 //ALL SITUATIONS
-situation_t situations[2] = {
-  {
-    TALK,
-    "Vous travaillez lorsque deux gardes viennent à votre rencontre",
-    {"Au nom du *roi* *suivez* nous ! (other : *ok*)", {"roi", "suivez", "ok"}, {&l0_1, &l0_2, &l0_3}}
+situation_t situations[100] = {
+  { //ANARION PLACE - 0
+    EXPLORE,
+    "You are in the middle of the village of Anarion, the place is full of life and the weather is pretty good\nAt your right is the tavern\nIn front of you siege the castle of the Anarion's lord",
+    .explore_names = {"tavern", "castle"},
+    .explore_index = {1, 5}
   },
-  {
+  { //ANARION TAVERN - 1
+    ROOM,
+    "You are in the tavern, there is a good mood here, the taverner is at your left behind the bar. You can see some sort of mercenaries in the back of the room",
+    .talk_names = {"taverner", "mercenaries"},
+    .talk_index = {2, 3}
+  },
+  { //ANARION_TAVERN_TAVERNER - 2
     TALK,
-    "Les gardes vous mennent en geole, vous voyez un viel homme qui pourris dans votre cellule",
-    {"Tu veux quoi ? (other : *qui etes vous*)", {"qui etes vous"}, {&l0_1, &l0_2}}
+    "The taverner is an old man but he seems pretty strong for his age, he gives you a big smile when you approach",
+    .line = {"Hi stranger ! Are you here to *drink* or get *infos* ?", {"drink", "infos"}, {&l3_1, &l3_2}}
+  },
+  { //ANARION_TAVERN_TAVERNER_SHOP - 3
+    MERCHANT,
+    "The taverner tells you what you can buy here",
+    .market_size = 3,
+    .market = {0,1,2}
+  },
+  { //ANARION_TAVERN_MERCENARIES - 4
+    TALK,
+    ""
+  },
+  { //ANARION CASTLE - 5
+    ROOM,
+    "You get to the castle gate, two guards block your way"
   }
 };
