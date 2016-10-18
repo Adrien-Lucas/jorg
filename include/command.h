@@ -5,7 +5,7 @@
 
 void get_cmd(void);
 void help();
-void status();
+void status(char *arg);
 void situation();
 void talk(char *arg);
 void say(char *arg);

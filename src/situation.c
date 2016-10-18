@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "character.h"
 #include "situation.h"
 #include "command.h"
 
@@ -77,8 +78,15 @@ void show_shop()
     char value[5];
     sprintf(value, "%d", items[current_situtation->market[i]].value);
 
-    printf("\n - %-3s| %-31s| %-6s| ", n, name, value);
+    char infos[255];
+    if(items[current_situtation->market[i]].type == WEAPON)
+    {
+      sprintf(infos, " Damages : %d", items[current_situtation->market[i]].power);
+    }
+
+    printf("\n - %-3s| %-31s| %-6s|%-4s ", n, name, value, infos);
   }
+  printf("\n\nCurrent gold : %d\n\nUse 'buy' or 'sell' to interact, see your inventory with 'status inventory'\n", character->gold_count);
 }
 
 //ALL LINES

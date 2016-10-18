@@ -29,7 +29,7 @@ void get_cmd(void)
   }
   else if(strstr(cmd, "status") != NULL)
   {
-    status();
+    status(cmd);
   }
   else if(strstr(cmd, "situation") != NULL)
   {
@@ -38,6 +38,15 @@ void get_cmd(void)
   else if(strstr(cmd, "help") != NULL)
   {
     help();
+  }
+  else if(strstr(cmd, "exit") != NULL)
+  {
+    exit_game();
+  }
+  else
+  {
+    puts("Unknow command, need some help ? type 'help'");
+    get_cmd();
   }
 }
 
@@ -55,24 +64,38 @@ void help()
   get_cmd();
 }
 
-void status()
+void status(char *arg)
 {
-  char className[40];
-  get_class_name(className, character->class);
-  puts("\n\x1b[35m = STATUS = \x1b[0mAll informations about your character");
-  printf("\n   - Name :");
-  printf("\n      %s\n", character->name);
-  printf("\n   - Class :");
-  printf("\n      %s\n", className);
-  printf("\n   - Stats :");
-  printf("\n      Strength      %d", character->stats.strength);
-  printf("\n      Dexterity     %d", character->stats.dexterity);
-  printf("\n      Constitution  %d", character->stats.constitution);
-  printf("\n      Intellect     %d", character->stats.intellect);
-  printf("\n      Wisdow        %d", character->stats.wisdow);
-  printf("\n      Charisma      %d\n", character->stats.charisma);
-  printf("\n   - Gold :");
-  printf("\n      %d\n", character->gold_count);
+  if(strstr(arg, "help") != NULL)
+  {
+    puts("\n\x1b[35m = STATUS HELP = \x1b[0mAll informations about your character status");
+    puts("\n   - status help - show all informations about using status commands");
+    puts("\n   - status - show global informations about your character");
+    puts("\n   - status inventory - show your current inventory");
+  }
+  else if(strstr(arg, "inventory") != NULL)
+  {
+    puts("\n\x1b[35m = INVENTORY = \x1b[0mYour current inventory");
+  }
+  else
+  {
+    char className[40];
+    get_class_name(className, character->class);
+    puts("\n\x1b[35m = STATUS = \x1b[0mAll informations about your character");
+    printf("\n   - Name :");
+    printf("\n      %s\n", character->name);
+    printf("\n   - Class :");
+    printf("\n      %s\n", className);
+    printf("\n   - Stats :");
+    printf("\n      Strength      %d", character->stats.strength);
+    printf("\n      Dexterity     %d", character->stats.dexterity);
+    printf("\n      Constitution  %d", character->stats.constitution);
+    printf("\n      Intellect     %d", character->stats.intellect);
+    printf("\n      Wisdow        %d", character->stats.wisdow);
+    printf("\n      Charisma      %d\n", character->stats.charisma);
+    printf("\n   - Gold :");
+    printf("\n      %d\n", character->gold_count);
+  }
 
   get_cmd();
 }
