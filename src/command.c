@@ -95,7 +95,7 @@ void status(char *arg)
     printf("\n      Charisma      %d\n", character->stats.charisma);
     printf("\n   - Gold :");
     printf("\n      %d\n", character->gold_count);
-  }
+  } 
 
   get_cmd();
 }

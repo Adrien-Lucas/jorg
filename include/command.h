@@ -16,4 +16,4 @@ void exit_game();
 
 line_t *current_line;
 
-#endif /* _JORG_COMMAND_H */
+#endif /* _JORG_COMMAND_H */ 
