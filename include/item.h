@@ -15,6 +15,9 @@ typedef struct
   item_type_t type;
   int power;
   char note[10];
+
+  //used in game var
+  int count;
 } item_t;
 
 item_t items[100];

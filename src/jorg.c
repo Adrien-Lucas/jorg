@@ -7,7 +7,7 @@
 void game_start(void)
 {
   print_welcome_text();
-  character = character_create();
+  character_create();
 
   char className[40];
   get_class_name(className,character->class);
@@ -42,9 +42,9 @@ void ask(char answer[], int size, const char *question)
       answer[ln] = '\0';
 }
 
-int do_choice(const char *question, char *choices[], int size)
+int do_choice(char *question, char *choices[], int size)
 {
-  printf("\n\n\x1b[35m%s\x1b[0m\n", question);
+  printf("\n\n%s\n", question);
 
   for(int i = 0; i < size; i++)
   {
@@ -53,7 +53,7 @@ int do_choice(const char *question, char *choices[], int size)
   printf("\n:");
   int choice = getchar() - '0';
   getchar();//ate enter
-  if(choice > size)
+  if(choice > size || choice < 0)
   {
     printf("\n$Invalid number : %d", choice);
     return do_choice(question, choices, size);

@@ -49,7 +49,10 @@ void line_init(line_t *ret, char *text, line_t *keyw[10])
 
 void change_situation(int index, _Bool getcmd)
 {
-  last_situation = current_situtation;
+
+  if(current_situtation->type == ROOM || current_situtation->type == EXPLORE)
+    last_situation = current_situtation;
+
   current_situtation = &situations[index];
   printf("%s\n", current_situtation->description);
 
@@ -66,7 +69,7 @@ void show_shop()
 {
   puts("\n\x1b[35m = SHOP = \x1b[0m");
   printf("\n\x1b[36m   N° |              NAME              | VALUE |             INFOS               \x1b[0m\n");
-  //printf("\n\x1b[36m===============================================\x1b[0m\n");
+
   for(int i = 0; i < current_situtation->market_size; i++)
   {
     char n[2];
@@ -78,7 +81,7 @@ void show_shop()
     char value[5];
     sprintf(value, "%d", items[current_situtation->market[i]].value);
 
-    char infos[255];
+    char infos[255] = " ";
     if(items[current_situtation->market[i]].type == WEAPON)
     {
       sprintf(infos, " Damages : %d", items[current_situtation->market[i]].power);
@@ -105,7 +108,7 @@ situation_t situations[100] = {
     ROOM,
     "You are in the tavern, there is a good mood here, the taverner is at your left behind the bar. You can see some sort of mercenaries in the back of the room",
     .talk_names = {"taverner", "mercenaries"},
-    .talk_index = {2, 3}
+    .talk_index = {2, 4}
   },
   { //ANARION_TAVERN_TAVERNER - 2
     TALK,
@@ -116,7 +119,7 @@ situation_t situations[100] = {
     MERCHANT,
     "The taverner tells you what you can buy here",
     .market_size = 3,
-    .market = {0,1,2}
+    .market = {4,5,6}
   },
   { //ANARION_TAVERN_MERCENARIES - 4
     TALK,
