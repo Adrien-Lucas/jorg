@@ -26,8 +26,8 @@ Jorg is based on commands, you have to indicate by action verbs your actions,
 e.g 
 ```bash
 go tavern
-```to get into the tavern.
-
+```
+to get into the tavern.
 You could see every possible commands at any moment by typing
 ```bash
 help
@@ -38,5 +38,6 @@ Let your imagination take place into the world of Jorg
 
 ##Screens
 
-![Screen1](http://imgur.com/5rkukFQ)
-![Screen2](http://image.prntscr.com/image/0515d66bdfbd449d88f4d449325d7af7.png)
+![Screen1](http://image.prntscr.com/image/0515d66bdfbd449d88f4d449325d7af7.png)
+![Screen2](http://i.imgur.com/5rkukFQ.png)
+
