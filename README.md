@@ -1,7 +1,7 @@
 # Jorg
 
 Jorg is a based text RPG game fully code in c with a linux environment.
-In this game you have to create your character and progress whith him through
+In this game you have to create your character and progress with him through
 all sorts of adventure.
 
 ##Installation
