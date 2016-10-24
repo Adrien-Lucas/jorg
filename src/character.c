@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include "character.h"
+#include "creature.h"
+#include "command.h"
 #include "item.h"
 #include "jorg.h"
 
@@ -18,11 +20,12 @@ void character_create()
   character->level = 1;
 
   int wealth = do_choice("Where did you come from ?", wealths, 4);
-  int gold = (4-wealth) * (4-wealth) * 10;
+  printf("\n");
+  int gold = (4-wealth) * (4-wealth) * 20;
   character->gold_count = gold;
   character->stats = classes[character->class];
   //Fill inventory with empty items
-  for(int i = 0; i < 30; i++)
+  for(int i = 0; i < 31; i++)
   {
     character->inventory[i] = items[0];
   }
@@ -31,10 +34,17 @@ void character_create()
     case 0:
       add_item(1,1);
       add_item(7,1);
+      character->max_hp = 10 + get_bonus(character->stats.constitution);
+      character->bba = 1;
       //WARRIOR BASE STUFF
       break;
     case 1:
-      add_item(2,1);
+      add_item(9,1);
+      add_item(8,1);
+      character->max_hp = 6 + get_bonus(character->stats.constitution);
+      character->bba = 0;
+      add_spell(0);
+      add_spell(1);
       //WIZARD BASE STUFF
       break;
     case 2:
@@ -44,25 +54,34 @@ void character_create()
       //PRIEST BASE STUFF
       break;
   }
+
+  character->eqquiped_weap = character->inventory[0];
+  character->eqquiped_armor = character->inventory[1];
+
+  character->curr_hp = character->max_hp;
+  info_t *armor = malloc(sizeof(info_t));
+  read_infos(armor, character->eqquiped_armor.note);
+  character->ca = 10 + armor->bonus[0] + get_bonus(character->stats.dexterity);
 }
 
 void add_item(int id, int n)
 {
   _Bool has_found = false;
   //Find exisisting object to increment the count
-  for(int i = 0; i < 30; i++)
+  for(int i = 0; i < 31; i++)
   {
     char *name = character->inventory[i].name;
     if(strcmp(name, items[id].name) == 0)
     {
       character->inventory[i].count += n;
       has_found = true;
-      break;
+      printf("%d %s Added to your inventory ! (see 'status inventory')\n", n, name);
+      return;
     }
   }
   //else find the first empty cell
   if(has_found == false)
-    for(int i = 0; i < 30; i++)
+    for(int i = 0; i < 31; i++)
     {
       char *name = character->inventory[i].name;
       if(strcmp(name, "empty") == 0)
@@ -70,12 +89,72 @@ void add_item(int id, int n)
         character->inventory[i] = items[id];
         character->inventory[i].count += n;
         has_found = true;
-        break;
+        printf("%d %s Added to your inventory ! (see 'status inventory')\n", n, character->inventory[i].name);
+        return;
       }
     }
 
   if(has_found == false)
     printf("\nYour inventory is full");
+}
+
+void rmv_item(int index, int n)
+{
+  char *name = character->inventory[index].name;
+  character->inventory[index].count -= n;
+  if(character->inventory[index].count == 0)
+  {
+      character->inventory[index] = items[0];
+      reorganize_inventory();
+  }
+  printf("\n%s Removed from your inventory (see 'status inventory')\n\n", name);
+}
+
+void add_spell(int id)
+{
+  //See if already have spell
+  for(int i = 0; i < character->spell_count; i++)
+  {
+    if(character->spell_list[i].name == spells[id].name)
+    {
+      printf("You already have the spell '%s'\n", spells[id].name);
+      return;
+    }
+  }
+  character->spell_list[character->spell_count] = spells[id];
+  character->spell_count++;
+  printf("The spell '%s' has been added to your spell list !\n", spells[id].name);
+}
+
+void reorganize_inventory()
+{
+  for(int i = 0; i < 31; i++)
+  {
+    char *name = character->inventory[i].name;
+    if(strcmp(name, "empty") == 0)
+    {
+      if(i < 30)
+      {
+        character->inventory[i] = character->inventory[i+1];
+        character->inventory[i+1] = items[0];
+      }
+    }
+  }
+}
+
+void death()
+{
+  char *choices[2] = {"Load a game", "Exit jorg"};
+  int choice = do_choice("You are dead, what are your last words ?", choices, 2);
+
+  if(choice == 0)
+  {
+
+  }
+  else
+  {
+    exit(0);
+  }
 }
 
 void character_free(character_t *ptr)

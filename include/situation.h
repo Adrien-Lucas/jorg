@@ -24,6 +24,10 @@ typedef struct
   line_t line;
 
   //FIGHT
+  char *attack_description;
+  int enemies_index[10];
+  situation_type_t tobe;
+
 
   //MERCHANT
   int market_size;
@@ -39,11 +43,13 @@ typedef struct
 
 situation_t *current_situtation;
 situation_t *last_situation;
+situation_t *last_place;
 situation_t situations[100];
 
 void line_init(line_t *ret, char *text, line_t *keyw[10]);
 void line_init_nokey(line_t *ret, char *text);
 void change_situation(int index, _Bool getcmd);
 void show_shop();
+void show_fight();
 
 #endif /* _JORG_SITUATION_H */

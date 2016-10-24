@@ -2,7 +2,6 @@
 // - n() No note
 // - h(x) heal of x
 // - d(x) damage of x
-// - p(x) power + x
 
 #ifndef _JORG_ITEM_H
 #define _JORG_ITEM_H
@@ -13,8 +12,7 @@ typedef struct
   char name[30];
   int value;
   item_type_t type;
-  int power;
-  char note[10];
+  char note[50];
 
   //used in game var
   int count;

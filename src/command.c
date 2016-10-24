@@ -36,6 +36,10 @@ void get_cmd(void)
   {
     status(cmd);
   }
+  else if(strstr(cmd, "equip") != NULL)
+  {
+    equip(cmd);
+  }
   else if(strstr(cmd, "situation") != NULL)
   {
     situation();
@@ -50,7 +54,7 @@ void get_cmd(void)
   }
   else if(strstr(cmd, "exit") != NULL)
   {
-    exit_game();
+    exit_cmd(cmd);
   }
   else
   {
@@ -109,16 +113,20 @@ void help(char *arg)
   {
     puts("\n\x1b[35m = EXIT HELP = \x1b[0mAll informations about quiting the game");
     puts("\n   - exit - ask you a confirmation and exit the game");
+    puts("\n   - exit shop - exit the actual shop");
     puts("\n   (see 'help save' and 'help load')");
   }
   else
   {
     puts("\n\x1b[35m = HELP = \x1b[0mList of all commands :");
     puts("\n   - help 'command name' - show all infos about a command, e.g : 'help say'");
-    puts("\n   - status - show all infos about the current character");
+    puts("\n   - status (inventory) - show all infos about the current character, 'status inventory' shows your inventory");
+    puts("\n   - equip 'index' - equip the selected item in wepon or armor slot, 'index' is the item index's in your inventory");
     puts("\n   - situation - reexplain the current situation");
     puts("\n   - talk 'name' - engage conversation with a character");
     puts("\n   - say 'keyword' - the message should contain keyword");
+    puts("\n   - buy 'index' 'quantity' - use this to buy items in shops, 'index' is the item's index in the shop table");
+    puts("\n   - sell 'index' 'quantity' - use this to sell items in shops, 'index' is the item's index in your inventory");
     puts("\n   - go 'place' - the message should contain place name");
     puts("\n   - save 'savename' - save the current game");
     puts("\n   - load 'savename' - loads a saved game");
@@ -139,20 +147,20 @@ void status(char *arg)
       char *name = character->inventory[i].name;
       if(strcmp(name, "empty") != 0)
       {
-        char value[5];
-        sprintf(value, "%d", character->inventory[i].value);
+        if(strcmp(name, "Equipped") != 0 && (strstr(character->eqquiped_weap.name, name) != NULL || strstr(character->eqquiped_armor.name, name) != NULL))
+          strcat(name, " (Equipped)");
 
-        /*char count[5];
-        sprintf(value, "%d", character->inventory[i].count);*/
-
-        char infos[255];
-        if(character->inventory[i].type == WEAPON)
-        {
-          sprintf(infos, " Damages : %d", character->inventory[i].power);
-        }
-
-        printf("\n - %-3d| %-31s| %-6d| %-6d| %-4s", i, name, character->inventory[i].value, character->inventory[i].count, infos);
+        printf("\n - %-3d| %-31s| %-6d| %-6d| %-4s", i, name, character->inventory[i].value, character->inventory[i].count, character->inventory[i].note);
       }
+    }
+  }
+  else if(strstr(arg, "spell") != NULL)
+  {
+    puts("\n\x1b[35m = SPELL LIST = \x1b[0mYour current spells");
+    printf("\n\x1b[36m   N° |              NAME              | COST | VALUE |             EFFECTS               \x1b[0m\n");
+    for(int i = 0; i < character->spell_count; i++)
+    {
+      printf("\n - %-3d| %-31s| %-5d| %-6d| %-4s", i, character->spell_list[i].name, character->spell_list[i].cost, character->spell_list[i].shop_value, character->spell_list[i].effects);
     }
   }
   else
@@ -171,9 +179,40 @@ void status(char *arg)
     printf("\n      Intellect     %d", character->stats.intellect);
     printf("\n      Wisdow        %d", character->stats.wisdow);
     printf("\n      Charisma      %d\n", character->stats.charisma);
+    printf("\n   - Armor class :");
+    printf("\n      %d\n", character->ca);
     printf("\n   - Gold :");
     printf("\n      %d\n", character->gold_count);
+    if(character->has_companion)
+    {
+      printf("\n   - Companion :");
+      printf("\n      %s\n", character->companion.name);
+    }
+    printf("\nUse 'status inventory' to see your inventory and 'status spell' to see your spell list\n");
   }
+
+  get_cmd();
+}
+
+void equip(char *arg)
+{
+  char *only_arg = malloc(sizeof(char *));
+  strcpy(only_arg, arg);
+  strrmv(only_arg, "equip ");
+
+  int id = atoi(only_arg);
+  char *name = character->inventory[id].name;
+  if(id >= 0 && strcmp(name, "empty") != 0 && (character->inventory[id].type == ARMOR || character->inventory[id].type == WEAPON))
+  {
+    if(character->inventory[id].type == ARMOR)
+      character->eqquiped_weap = character->inventory[id];
+    else
+      character->eqquiped_armor = character->inventory[id];
+
+    printf("%s Equipped successfully !\n", name);
+  }
+  else
+    printf("You cannot equip this item (see 'help equip')\n");
 
   get_cmd();
 }
@@ -185,7 +224,6 @@ void talk(char *arg)
     if(current_situtation->talk_names[i] != NULL && strstr(arg, current_situtation->talk_names[i]) != NULL)
     {
       change_situation(current_situtation->talk_index[i], false);
-      say("hi");
       return;
     }
   }
@@ -207,7 +245,8 @@ void say(char *arg)
     {
       current_line = NULL;
       printf("\nGoodbye\n");
-      go("back");
+      current_situtation = last_situation;
+      situation();
       return;
     }
     else if(current_line != NULL)
@@ -217,12 +256,59 @@ void say(char *arg)
       {
         if(current_line->keywords[i] != NULL && strstr(arg, current_line->keywords[i]) != NULL)
         {
+          _Bool blocus = false;
+          _Bool is_command = false;
+          if(strstr(current_line->next[i]->text, "pay(") != NULL)
+          {
+            int price = read_function(current_line->next[i]->text, "pay");
+            if(price <= character->gold_count)
+              character->gold_count -= price;
+            else
+            {
+              printf("You don't have enough money, come back when you'll have %dgp\n", price);
+              blocus = true;
+            }
+            is_command = true;
+          }
+          if(strstr(current_line->next[i]->text, "companion(") != NULL)
+          {
+            if(!blocus)
+            {
+              int comp = read_function(current_line->next[i]->text, "companion");
+              character->companion = companions[comp];
+              character->has_companion = true;
+            }
+            is_command = true;
+          }
+          if(strstr(current_line->next[i]->text, "additem(") != NULL)
+          {
+            if(!blocus)
+            {
+              int item = read_function(current_line->next[i]->text, "additem");
+              add_item(item, 1);
+            }
+            is_command = true;
+          }
+          if(strstr(current_line->next[i]->text, "addspell(") != NULL)
+          {
+            if(!blocus)
+            {
+              int spell = read_function(current_line->next[i]->text, "addspell");
+              add_spell(spell);
+            }
+            is_command = true;
+          }
           if(strstr(current_line->next[i]->text, "nxtsit(") != NULL)
           {
-            change_situation(current_line->next[i]->text[7] - '0', true);
-            return;
+            if(!blocus)
+            {
+              int sit = read_function(current_line->next[i]->text, "nxtsit");
+              change_situation( sit, true );
+              return;
+            }
+            is_command = true;
           }
-          else
+          if(!is_command)
           {
             printf("%s\n", current_line->next[i]->text);
             if(current_line->next[i]->keywords[0] != NULL)
@@ -251,23 +337,20 @@ void go(char *arg)
 {
   if(strstr(arg, "back") != NULL)
   {
-    current_situtation = last_situation;
+    current_situtation = last_place;
     printf("%s\n", current_situtation->description);
   }
   else
   {
-    int findkw = 0;
     for (int i = 0; i < 10; i++)
     {
       if(current_situtation->explore_names[i] != NULL && strstr(arg, current_situtation->explore_names[i]) != NULL)
       {
         change_situation(current_situtation->explore_index[i], false);
-        findkw = 1;
-        break;
+        return;
       }
     }
-    if(findkw == 0)
-      printf("\nThere is no such place, are you lost ?");
+    printf("\nThere is no such place, are you lost ?");
   }
 
   get_cmd();
@@ -275,10 +358,19 @@ void go(char *arg)
 
 void situation()
 {
-  printf("%s\n", current_situtation->description);
-  if(current_situtation->type == MERCHANT)
+  if(current_situtation->type != FIGHT)
   {
-    show_shop();
+    printf("%s\n", current_situtation->description);
+    if(current_situtation->type == MERCHANT)
+      show_shop();
+
+    if(current_situtation->type == TALK)
+      say("hi");
+  }
+  else
+  {
+    show_fight();
+    return;
   }
 
   get_cmd();
@@ -298,31 +390,35 @@ void buy(char *arg)
     int n = atoi(args[1]);
     if(n==0)
       n = 1;
-
-    if(character->gold_count >= items[current_situtation->market[id]].value * n)
+    if(id < current_situtation->market_size)
     {
-      char question[255];
-      sprintf(question, "Are you sure you want to buy x%d %s for %d ?", n, items[current_situtation->market[id]].name, items[current_situtation->market[id]].value * n);
-      char yes[255];
-      sprintf(yes ,"Yes I'm sure to buy a %s", items[current_situtation->market[id]].name);
-      char *choices[2] = {yes,"Never mind"};
-      int confirmation = do_choice(question, choices, 2);
-      if(confirmation == 0)
+      if(character->gold_count >= items[current_situtation->market[id]].value * n)
       {
-          character->gold_count -= items[current_situtation->market[id]].value * n;
-          add_item(current_situtation->market[id], n);
-          printf("\n%s Added to your inventory ! (see 'status inventory')\n\n", items[current_situtation->market[id]].name);
+        char question[255];
+        sprintf(question, "Are you sure you want to buy %d %s for %dgp ?", n, items[current_situtation->market[id]].name, items[current_situtation->market[id]].value * n);
+        char yes[255];
+        sprintf(yes ,"Yes I'm sure to buy %d %s", n, items[current_situtation->market[id]].name);
+        char *choices[2] = {yes,"Never mind"};
+        int confirmation = do_choice(question, choices, 2);
+        if(confirmation == 0)
+        {
+            character->gold_count -= items[current_situtation->market[id]].value * n;
+            add_item(current_situtation->market[id], n);
+            situation();
+            return;
+        }
       }
+      else
+        printf("You don't have enough money to buy %d %s\n", n, items[current_situtation->market[id]].name);
     }
     else
-      printf("You don't have enough money to buy x%d %s\n", n, items[current_situtation->market[id]].name);
+        printf("I don't sell this object, indicate the number of the desired object on the shop list please\n");
 
-    situation();
     return;
   }
   else
   {
-    printf("Your not in a shop");
+    printf("Your not in a shop\n");
   }
 
   get_cmd();
@@ -330,7 +426,52 @@ void buy(char *arg)
 
 void sell(char *arg)
 {
+  if(current_situtation->type == MERCHANT)
+  {
+    char *only_arg = malloc(sizeof(char *));
+    strcpy(only_arg, arg);
+    strrmv(only_arg, "sell ");
 
+    char *args[2];
+    strsplit(args, only_arg, " ");
+    int id = atoi(args[0]);
+    int n = atoi(args[1]);
+    if(n==0)
+      n = 1;
+
+    char *name = character->inventory[id].name;
+    if(strcmp(name, "empty") != 0)
+    {
+      if(n <= character->inventory[id].count)
+      {
+        char question[255];
+        sprintf(question, "I'll give you %dgp for your %d %s, did you accept ?", (character->inventory[id].value * n)/2, n, character->inventory[id].name);
+        char yes[255];
+        sprintf(yes ,"Yes I want to sell %d %s", n, character->inventory[id].name);
+        char *choices[2] = {yes,"Never mind"};
+        int confirmation = do_choice(question, choices, 2);
+        if(confirmation == 0)
+        {
+            character->gold_count += (character->inventory[id].value * n) / 2;
+            rmv_item(id, n);
+        }
+      }
+      else
+      {
+        printf("You don't have %d %s\n", n, character->inventory[id].name);
+      }
+    }
+    else
+    {
+      printf("There is no object at line %d in your inventory\n", id);
+    }
+  }
+  else
+  {
+    printf("Your not in a shop\n");
+  }
+
+  get_cmd();
 }
 
 void save()
@@ -343,33 +484,31 @@ void load()
 
 }
 
-void exit_game()
+void exit_cmd(char *arg)
 {
-
-}
-
-void strsplit(char*words[50], char *string, char *separator)
-{
-  char* token;
-
-  if (string != NULL)
+  if(strstr(arg, "shop") != NULL)
   {
-    int i = 0;
-
-    while ((token = strsep(&string, separator)) != NULL)
+    if(current_situtation->type == MERCHANT)
     {
-      words[i] = token;
-      i++;
+      current_situtation = last_situation;
+      situation();
+      return;
+    }
+    else
+    {
+      printf("Your not in a shop\n");
     }
   }
-}
-
-char* strrmv(char *text, char *removeword){
-    char *p=text;
-    int rlen;
-    rlen = strlen(removeword);
-    while(NULL!=(p=strstr(p, removeword))){
-        memmove(p, p+rlen, strlen(p+rlen)+1);
+  else
+  {
+    char *choices[2] = {"Exit Jorg", "Never mind"};
+    int choice = do_choice("Are you sure you want to exit Jorg ? All unsaved progress would be lost", choices, 2);
+    if(choice == 0)
+    {
+      character_free(character);
+      exit(0);
+      //Exit the game
     }
-    return text;
+  }
+  get_cmd();
 }

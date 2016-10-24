@@ -6,6 +6,7 @@
 void get_cmd(void);
 void help(char *arg);
 void status(char *arg);
+void equip(char *arg);
 void situation();
 void talk(char *arg);
 void say(char *arg);
@@ -14,10 +15,7 @@ void buy(char *arg);
 void sell(char *arg);
 void save();
 void load();
-void exit_game();
-
-char* strrmv(char *text, char *removeword);
-void strsplit(char*words[50], char *string, char *separator);
+void exit_cmd(char *arg);
 
 line_t *current_line;
 

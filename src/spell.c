@@ -1,6 +1,6 @@
 #include "spell.h"
 
 spell_t spells[2] = {
-  { "Hurt", DAMAGE, 5, 5, "n()"},
-  { "Heal", HEAL, 5, 5, "n()"}
+  { .name = "Hurt", .cost = 5, .effects = "Damage(1d6)", .shop_value = 150},
+  { .name = "Heal", .cost = 5, .effects = "Heal(1d6)", .shop_value = 150}
 };

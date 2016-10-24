@@ -7,14 +7,12 @@
 #ifndef _JORG_SPELL_H
 #define _JORG_SPELL_H
 
-typedef enum { DAMAGE, HEAL, BUFF } spell_type_t;
 typedef struct
 {
   char name[50];
-  spell_type_t type;
   int cost;
-  int power;
-  char note[10];
+  char *effects;
+  int shop_value;
 } spell_t;
 
 

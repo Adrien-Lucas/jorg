@@ -11,6 +11,8 @@ typedef struct
 	int charisma;
 } stats_t;
 
-stats_t classes[4];
+stats_t classes[100];
+
+int get_bonus(int stat);
 
 #endif /* _JORG_CLASS_H */
