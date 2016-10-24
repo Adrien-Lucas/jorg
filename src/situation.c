@@ -10,6 +10,12 @@
 #include "command.h"
 #include "class.h"
 
+#ifdef _WIN32
+#define  SELECT_ADD 1
+#else
+#define  SELECT_ADD 0
+#endif
+
 void line_init_nokey(line_t *ret, char *text)
 {
   ret->text = text;
@@ -74,7 +80,7 @@ void show_fight()
   //Get enemies number
   int *nb = current_situtation->enemies_index;
   int enemies_nb = sizeof(nb) / sizeof(int);
-
+  enemies_nb+=SELECT_ADD;
   if(character->has_companion)
         enemies_nb++;
 
