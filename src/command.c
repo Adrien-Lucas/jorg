@@ -168,24 +168,25 @@ void status(char *arg)
     char className[40];
     get_class_name(className, character->class);
     puts("\n\x1b[35m = STATUS = \x1b[0mAll informations about your character");
-    printf("\n   - Name :");
+    printf("\n   \x1b[31m%d/%d HP\n   \x1b[32m%d/%d MANA\x1b[0m\n", character->curr_hp, character->max_hp, character->curr_mana, character->max_mana);
+    printf("\n   - \x1b[33mName :\x1b[0m");
     printf("\n      %s\n", character->name);
-    printf("\n   - Class :");
+    printf("\n   - \x1b[33mClass :\x1b[0m");
     printf("\n      %s\n", className);
-    printf("\n   - Stats :");
+    printf("\n   - \x1b[33mStats :\x1b[0m");
     printf("\n      Strength      %d", character->stats.strength);
     printf("\n      Dexterity     %d", character->stats.dexterity);
     printf("\n      Constitution  %d", character->stats.constitution);
     printf("\n      Intellect     %d", character->stats.intellect);
     printf("\n      Wisdow        %d", character->stats.wisdow);
     printf("\n      Charisma      %d\n", character->stats.charisma);
-    printf("\n   - Armor class :");
+    printf("\n   - \x1b[33mArmor class :\x1b[0m");
     printf("\n      %d\n", character->ca);
-    printf("\n   - Gold :");
+    printf("\n   - \x1b[33mGold :\x1b[0m");
     printf("\n      %d\n", character->gold_count);
     if(character->has_companion)
     {
-      printf("\n   - Companion :");
+      printf("\n   - \x1b[33mCompanion :\x1b[0m");
       printf("\n      %s\n", character->companion.name);
     }
     printf("\nUse 'status inventory' to see your inventory and 'status spell' to see your spell list\n");
@@ -223,7 +224,7 @@ void talk(char *arg)
   {
     if(current_situtation->talk_names[i] != NULL && strstr(arg, current_situtation->talk_names[i]) != NULL)
     {
-      change_situation(current_situtation->talk_index[i], false);
+      change_situation(current_situtation->talk_index[i]);
       return;
     }
   }
@@ -238,15 +239,22 @@ void say(char *arg)
   {
     if(strstr(arg, "hi") != NULL)
     {
-      current_line = &current_situtation->line;
-      printf("%s\n", current_line->text);
+      if(character->has_companion && strcmp(character->companion.name, current_situtation->recruitable_companion) == 0)
+      {
+        printf("You already have %s\n", character->companion.name);
+        say("goodbye");
+      }
+      else
+      {
+        current_line = &current_situtation->line;
+        printf("%s\n", color_keywords(current_line->text, current_line->keywords, 33));
+      }
     }
     else if(current_line != NULL && strstr(arg, "goodbye") != NULL)
     {
       current_line = NULL;
       printf("\nGoodbye\n");
-      current_situtation = last_situation;
-      situation();
+      change_situation_t(last_situation);
       return;
     }
     else if(current_line != NULL)
@@ -256,61 +264,72 @@ void say(char *arg)
       {
         if(current_line->keywords[i] != NULL && strstr(arg, current_line->keywords[i]) != NULL)
         {
-          _Bool blocus = false;
           _Bool is_command = false;
+          int price = 0;
           if(strstr(current_line->next[i]->text, "pay(") != NULL)
           {
-            int price = read_function(current_line->next[i]->text, "pay");
+            price = read_function(current_line->next[i]->text, "pay");
             if(price <= character->gold_count)
               character->gold_count -= price;
             else
             {
               printf("You don't have enough money, come back when you'll have %dgp\n", price);
-              blocus = true;
+              change_situation_t( last_situation );
+              return;
             }
             is_command = true;
           }
           if(strstr(current_line->next[i]->text, "companion(") != NULL)
           {
-            if(!blocus)
+            int comp = read_function(current_line->next[i]->text, "companion");
+            if(character->has_companion)
             {
-              int comp = read_function(current_line->next[i]->text, "companion");
+              char *question = malloc(sizeof(char*));
+              sprintf(question, "Are you sure to replace %s with %s ?", character->companion.name, companions[comp].name);
+              char *choices[2] = {"Yes", "No"};
+              int choice = do_choice(question, choices, 2);
+              if(choice == 0)
+              {
+                character->companion = companions[comp];
+                printf("%s is now your companion (see 'status companion')\n", character->companion.name);
+              }
+              else
+                character->gold_count += price;
+            }
+            else
+            {
               character->companion = companions[comp];
               character->has_companion = true;
+              printf("%s is now your companion (see 'status companion')\n", character->companion.name);
             }
             is_command = true;
           }
           if(strstr(current_line->next[i]->text, "additem(") != NULL)
           {
-            if(!blocus)
-            {
-              int item = read_function(current_line->next[i]->text, "additem");
-              add_item(item, 1);
-            }
+            int item = read_function(current_line->next[i]->text, "additem");
+            add_item(item, 1);
             is_command = true;
           }
           if(strstr(current_line->next[i]->text, "addspell(") != NULL)
           {
-            if(!blocus)
-            {
-              int spell = read_function(current_line->next[i]->text, "addspell");
-              add_spell(spell);
-            }
+            int spell = read_function(current_line->next[i]->text, "addspell");
+            add_spell(spell);
+            is_command = true;
+          }
+          if(strstr(current_line->next[i]->text, "print(") != NULL) //don't work
+          {
+            printf("%s\n", read_function_str(current_line->next[i]->text, "print"));
             is_command = true;
           }
           if(strstr(current_line->next[i]->text, "nxtsit(") != NULL)
           {
-            if(!blocus)
-            {
-              int sit = read_function(current_line->next[i]->text, "nxtsit");
-              change_situation( sit, true );
-              return;
-            }
-            is_command = true;
+            int sit = read_function(current_line->next[i]->text, "nxtsit");
+            change_situation( sit );
+            return;
           }
           if(!is_command)
           {
-            printf("%s\n", current_line->next[i]->text);
+            printf("%s\n", color_keywords(current_line->next[i]->text, current_line->next[i]->keywords, 33));
             if(current_line->next[i]->keywords[0] != NULL)
               current_line = current_line->next[i];
           }
@@ -337,8 +356,9 @@ void go(char *arg)
 {
   if(strstr(arg, "back") != NULL)
   {
-    current_situtation = last_place;
-    printf("%s\n", current_situtation->description);
+    /*current_situtation = last_place;
+    printf("%s\n", current_situtation->description);*/
+    change_situation_t(last_place);
   }
   else
   {
@@ -346,7 +366,7 @@ void go(char *arg)
     {
       if(current_situtation->explore_names[i] != NULL && strstr(arg, current_situtation->explore_names[i]) != NULL)
       {
-        change_situation(current_situtation->explore_index[i], false);
+        change_situation( current_situtation->explore_index[i] );
         return;
       }
     }
@@ -360,7 +380,11 @@ void situation()
 {
   if(current_situtation->type != FIGHT)
   {
-    printf("%s\n", current_situtation->description);
+    char *str = strdup(current_situtation->description);
+    strcpy(str, color_keywords(str, current_situtation->explore_names, 31));
+    strcpy(str, color_keywords(str, current_situtation->talk_names, 32));
+    printf("%s\n", str);
+
     if(current_situtation->type == MERCHANT)
       show_shop();
 
@@ -490,8 +514,7 @@ void exit_cmd(char *arg)
   {
     if(current_situtation->type == MERCHANT)
     {
-      current_situtation = last_situation;
-      situation();
+      change_situation_t(last_situation);
       return;
     }
     else

@@ -2,6 +2,8 @@
 // - n() No note
 // - h(x) heal of x
 // - d(x) damage of x
+#include "creature.h"
+#include "jorg.h"
 
 #ifndef _JORG_ITEM_H
 #define _JORG_ITEM_H
@@ -19,5 +21,8 @@ typedef struct
 } item_t;
 
 item_t items[100];
+
+void creature_affected_effects(char *effects, char *name, creature_t *instance, creature_t reference);
+void player_affected_effects(char *effects, char *name);
 
 #endif /* _JORG_ITEM_H */

@@ -5,6 +5,11 @@
 #include "jorg.h"
 #include "character.h"
 #include "command.h"
+#include <stddef.h>
+
+#if (__STDC_VERSION__ >= 199901L)
+#include <stdint.h>
+#endif
 
 void game_start(void)
 {
@@ -46,7 +51,7 @@ void ask(char answer[], int size, const char *question)
 
 int do_choice(char *question, char *choices[], int size)
 {
-  printf("\n\n\x1b[35m%s\x1b[0m\n", question);
+  printf("\n\n%s\n", strcolor(question, 35));
 
   for(int i = 0; i < size; i++)
   {
@@ -114,17 +119,17 @@ void read_infos(info_t *infos, char *source)
       strsplit(d_separation, vars, "d");
       infos->dice_nb[size] = atoi(d_separation[0]);
       // - GET DICE TYPE AND BONUS
-      if(strstr(vars, "+") != NULL)
+      if(strstr(d_separation[1], "+") != NULL)
       {
         char *plus_separation[2];
         strsplit(plus_separation, d_separation[1], "+");
         infos->dice[size] = atoi(plus_separation[0]);
         infos->bonus[size] = atoi(plus_separation[1]);
       }
-      else if(strstr(vars, "-") != NULL)
+      else if(strstr(d_separation[1], "-") != NULL)
       {
         char *minus_separation[2];
-        strsplit(minus_separation, d_separation[1], "+");
+        strsplit(minus_separation, d_separation[1], "-");
         infos->dice[size] = atoi(minus_separation[0]);
         infos->bonus[size] = atoi(minus_separation[1]);
       }
@@ -155,6 +160,20 @@ int read_function(char *str, char *fct)
   char *spliting[10];
   strsplit(spliting, reader, ")");
   return atoi(spliting[0]);
+}
+
+char *read_function_str(char *str, char *fct)
+{
+  char* reader = malloc(sizeof(char*));
+  char* fct_name = malloc(sizeof(char*));
+  strcpy(fct_name, fct);
+  strcat(fct_name, "(");
+  strcpy(reader, strrmvbfr(str, fct_name));
+  reader = strrmv(reader, fct_name);
+
+  char *spliting[10];
+  strsplit(spliting, reader, ")");
+  return spliting[0];
 }
 
 int roll_dice(char *name, int nb, int type, int bonus)
@@ -194,6 +213,7 @@ int rand_lim(int limit)
 
     return retval;
 }
+
 void strsplit(char*words[50], char *string, char *separator)
 {
   char* token;
@@ -210,7 +230,8 @@ void strsplit(char*words[50], char *string, char *separator)
   }
 }
 
-char* strrmv(char *text, char *removeword){
+char* strrmv(char *text, char *removeword)
+{
     char *p=text;
     int rlen;
     rlen = strlen(removeword);
@@ -263,4 +284,86 @@ char* mystrsep(char** stringp, const char* delim)
   }
 
   return start;
+}
+
+char *strcolor(const char *str, const int color)
+{
+  #ifdef _WIN32
+    switch (color)
+    {
+      case 0:
+        break;
+      case 31:
+        break;
+      case 32:
+        break;
+      case 33:
+        break;
+      case 34:
+        break;
+      case 35:
+        break;
+      case 36:
+        break;
+      case 37:
+        break;
+    }
+  #else
+    char *start = malloc(sizeof(char *));
+    sprintf(start, "\x1b[%dm", color);
+    char *end = malloc(sizeof(char *));
+    strcpy(end, "\x1b[0m");
+    char *tmpstr = malloc(sizeof(char *));
+    strcat(tmpstr, start);
+    strcat(tmpstr, str);
+    strcat(tmpstr, end);
+    return tmpstr;
+  #endif
+}
+
+// You must free the result if result is non-NULL.
+char *repl_str(char *orig, char *rep, char *with) {
+    char *result; // the return string
+    char *ins;    // the next insert point
+    char *tmp;    // varies
+    int len_rep;  // length of rep (the string to remove)
+    int len_with; // length of with (the string to replace rep with)
+    int len_front; // distance between rep and end of last rep
+    int count;    // number of replacements
+
+    // sanity checks and initialization
+    if (!orig && !rep)
+        return NULL;
+    len_rep = strlen(rep);
+    if (len_rep == 0)
+        return NULL; // empty rep causes infinite loop during count
+    if (!with)
+        with = "";
+    len_with = strlen(with);
+
+    // count the number of replacements needed
+    ins = orig;
+    for (count = 0; (tmp = strstr(ins, rep)); ++count) {
+        ins = tmp + len_rep;
+    }
+
+    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+
+    if (!result)
+        return NULL;
+
+    // first time through the loop, all the variable are set correctly
+    // from here on,
+    //    tmp points to the end of the result string
+    //    ins points to the next occurrence of rep in orig
+    //    orig points to the remainder of orig after "end of rep"
+    while (count--) {
+        ins = strstr(orig, rep);
+        len_front = ins - orig;
+        tmp = strncpy(tmp, orig, len_front) + len_front;
+        tmp = strcpy(tmp, with) + len_with;
+        orig += len_front + len_rep; // move to next "end of rep"
+    }
+    strcpy(tmp, orig);
+    return result;
 }

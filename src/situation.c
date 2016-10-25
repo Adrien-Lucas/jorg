@@ -57,17 +57,28 @@ void line_init(line_t *ret, char *text, line_t *keyw[10])
   ret->text = text;
 }
 
-void change_situation(int index, _Bool getcmd)
+void change_situation(int index)
 {
-
   if((current_situtation->type == ROOM || current_situtation->type == EXPLORE) && (situations[index].type == ROOM || situations[index].type == EXPLORE))
     last_place = current_situtation;
-  if(current_situtation->type != MERCHANT)
+  if(current_situtation->type != MERCHANT && current_situtation->type != TALK)
     last_situation = current_situtation;
 
   current_situtation = &situations[index];
   situation();
 }
+
+void change_situation_t(situation_t *sit)
+{
+  if((current_situtation->type == ROOM || current_situtation->type == EXPLORE) && (sit->type == ROOM || sit->type == EXPLORE))
+    last_place = current_situtation;
+  if(current_situtation->type != MERCHANT && current_situtation->type != TALK)
+    last_situation = current_situtation;
+
+  current_situtation = sit;
+  situation();
+}
+
 
 void show_fight()
 {
@@ -147,6 +158,7 @@ void show_fight()
 
       printf("\n\x1b[31m = %s's turn = \x1b[0m", character->name);
       printf("\n\x1b[33m   HP : %d/%d\x1b[0m", character->curr_hp, character->max_hp);
+      printf("\n\x1b[32m   MANA : %d/%d\x1b[0m\n", character->curr_mana, character->max_mana);
       char *choices[4] = { "Attack", "Spell", "Use item", "Ran off" };
       int choice = do_choice( "What do you do ?", choices, 4 );
 
@@ -169,7 +181,7 @@ void show_fight()
               if(instances[i].hp <= 0)
                 snprintf(temp_string[i], 100, "%s   (Dead)", instances[i].name);
 
-              selection[i] = temp_string[i];
+              selection[i] = strdup(temp_string[i]);
             }
             else
               selection[i] = "Back";
@@ -196,7 +208,7 @@ void show_fight()
           if(hit >= instances[target].ca)
           {
             //Damage
-            printf("You hit %s\n", instances[target].name);
+            printf("You hit %s  (%s)\n", instances[target].name, character->eqquiped_weap.name);
             read_infos(action_infos, character->eqquiped_weap.note);
             char *action = malloc(sizeof(char*));
             sprintf(action, "Damage %s with %s", instances[target].name, character->eqquiped_weap.name);
@@ -237,6 +249,14 @@ void show_fight()
           }
 
           int spell_choice = do_choice("Which spell do you want to throw ?", spell_choices, character->spell_count+1);
+          while(character->curr_mana < character->spell_list[choice].cost)
+          {
+            printf("\x1b[31mYou don't have nough mana to throw this spell\x1b[0m\n");
+            printf("\n\n \x1b[32m%d/%d MANA\x1b[0m\n", character->curr_mana, character->max_mana);
+            spell_choice = do_choice("Which spell do you want to throw ?", spell_choices, character->spell_count+1);
+          }
+          character->curr_mana -= character->spell_list[choice].cost;
+
           if(spell_choice == character->spell_count)
           {
             turn_progress--;
@@ -276,126 +296,130 @@ void show_fight()
             }
           }
 
-          read_infos(action_infos, character->spell_list[spell_choice].effects);
-          int total_dmg = -1; //-1 to know if was call
-          int total_heal = -1;
-          for(i = 0; i < action_infos->size; i++)
+          if(target < enemies_nb)
           {
-            char *action = malloc(sizeof(char*));
-            // ======= TYPE : DAMAGE =======
-            if(strcmp(action_infos->type[i], "Damage") == 0)
+            if(character->has_companion && target == enemies_nb-1)
+              creature_affected_effects(character->spell_list[spell_choice].effects, character->spell_list[spell_choice].name, &instances[target], character->companion);
+            else
+              creature_affected_effects(character->spell_list[spell_choice].effects, character->spell_list[spell_choice].name, &instances[target], creatures[current_situtation->enemies_index[i]]);
+
+            if(instances[target].hp <= 0)
             {
-              //Hit
-              hit = roll_dice("Contact hit", 1, 20, get_bonus(character->stats.intellect));
+              printf("%s died \n", instances[target].name);
+              //check if all enemies dead
+              count = enemies_nb;
+              if(character->has_companion)
+                count--;
 
-              if(total_dmg == -1) //Say it has been used
-                total_dmg = 0;
-
-              if((target < enemies_nb && hit >= 10 + get_bonus(instances[target].stats.dexterity)) || target >= enemies_nb) //auto hit on player
+              _Bool all_dead = true;
+              for(i = 0; i < count; i++)
               {
-                //Damage
-                sprintf(action, "Damage with %s", character->spell_list[spell_choice].name);
-
-                total_dmg += roll_dice(action, action_infos->dice_nb[i], action_infos->dice[i], action_infos->bonus[i]);
+                if(instances[i].hp > 0)
+                   all_dead = false;
               }
-
+              if(all_dead)
+                fight_over = true;
             }
-            // ======== TYPE : HEAL ========
-            else if(strcmp(action_infos->type[i], "Heal") == 0)
+          }
+          else
+          {
+            player_affected_effects(character->spell_list[spell_choice].effects, character->spell_list[spell_choice].name);
+            if(character->curr_hp <= 0)
             {
-              sprintf(action, "Heal with %s", character->spell_list[spell_choice].name);
-
-              if(total_heal == -1) //Say it has been used
-                total_heal = 0;
-
-              total_heal += roll_dice(action, action_infos->dice_nb[i], action_infos->dice[i], action_infos->bonus[i]);
-            }
-
-            if(total_dmg != -1)
-            {
-              if(total_dmg > 0)
-              {
-                if(target < enemies_nb) // Npc
-                {
-                  printf("%s deals %d damages to %s\n", character->name, total_dmg, instances[target].name);
-                  instances[target].hp -= total_dmg;
-                  if(instances[target].hp <= 0)
-                  {
-                    printf("%s died \n", instances[target].name);
-                    //check if all enemies dead
-                    count = enemies_nb;
-                    if(character->has_companion)
-                      count--;
-
-                    _Bool all_dead = true;
-                    for(i = 0; i < enemies_nb; i++)
-                    {
-                      if(instances[i].hp > 0)
-                         all_dead = false;
-                    }
-                    if(all_dead)
-                      fight_over = true;
-                  }
-                }
-                else //Player
-                {
-                  printf("%s deals %d damages to %s\n", character->name, total_dmg, character->name);
-                  character->curr_hp -= total_dmg;
-                  if(character->curr_hp <= 0)
-                  {
-                    getchar();
-                    printf("You have killed yourself ... really ?\n");
-                    death();
-                    return;
-                  }
-                }
-              }
-              else
-                printf("You missed\n");
-            }
-            if(total_heal > 0)
-            {
-              int diff = 0;
-              if(target < enemies_nb) // Npc
-              {
-                instances[target].hp += total_heal;
-                 //Hp can't go above maxHp
-                if(character->has_companion && target == enemies_nb-1 && instances[target].hp > character->companion.hp)
-                {
-                  diff = character->companion.hp - instances[target].hp;
-                  instances[target].hp = character->companion.hp;
-                }
-                else if(!(character->has_companion && target == enemies_nb-1) && instances[target].hp > creatures[current_situtation->enemies_index[i]].hp)
-                {
-                  diff = creatures[current_situtation->enemies_index[i]].hp - instances[target].hp;
-                  instances[target].hp = creatures[current_situtation->enemies_index[i]].hp;
-                }
-              }
-              else // Player
-              {
-                printf("%s heals %s of %d\n", character->name, character->name, total_heal);
-                character->curr_hp += total_heal;
-                if(character->curr_hp > character->max_hp)
-                {
-                  diff = character->max_hp - character->curr_hp;
-                  character->curr_hp = character->max_hp;
-                }
-              }
-              int healed = total_heal - abs(diff);
-              if(healed < 0)
-                healed = 0;
-              printf("%s heals %s of %d\n", character->name, instances[target].name, healed);
+              getchar();
+              printf("%s\n", strcolor("You killed yourself, really ?", 31));
+              getchar();
+              death();
+              return;
             }
           }
           getchar();
           break;
         //USE ITEM
         case 2:
+          //Show CONSUMABLE list
+          count = 0;
+          char *consumables[31];
+          int consums_index[30];
+          for(i = 0; i < 31; i++)
+          {
+            if(character->inventory[i].type == CONSUMABLE)
+            {
+              char *tmpstr = malloc(10*sizeof(char *));
+              strcpy(tmpstr, character->inventory[i].name);
+              char itoa[3];
+              sprintf(itoa, " - Count : %d", character->inventory[i].count );
+              strcat(tmpstr, itoa);
+              strcat(tmpstr, " - Effects : ");
+              strcat(tmpstr, character->inventory[i].note);
 
+              consumables[count] = tmpstr;
+              consums_index[count] = i;
+              count++;
+            }
+          }
+          consumables[count] = "Back";
+
+          int choice = do_choice("What object do you want to use ?", consumables, count+1);
+          if(choice == count)
+          {
+            turn_progress--;
+            break;
+          }
+
+          player_affected_effects(character->inventory[consums_index[choice]].note, character->inventory[consums_index[choice]].name);
+          rmv_item(consums_index[choice], 1);
+          if(character->curr_hp <= 0)
+          {
+            getchar();
+            printf("%s\n", strcolor("You killed yourself, really ?", 31));
+            getchar();
+            death();
+            return;
+          }
+          getchar();
           break;
         //RAN OFF
         case 3:
+          choices[0] = "I Flee !";
+          choices[1] = "I'll fight to my last breath !";
+          choice = do_choice("Do you really want to ran off ?", choices, 2);
 
+          if(choice == 0) //Flee
+          {
+            int flee = roll_dice("Flee", 1, 20, get_bonus(character->stats.dexterity));
+            count = enemies_nb;
+            if(character->has_companion)
+              count--;
+
+            printf("Your enemies try to catch you !\n");
+            int average_pursue = 0;
+            for(i = 0; i < count; i++)
+            {
+              int pursue = roll_dice("Pursue", 1, 20, get_bonus(instances[i].stats.dexterity));
+              average_pursue += pursue;
+            }
+            average_pursue /= count;
+            printf("\nAverage pursue score : %d\n", average_pursue);
+            if(average_pursue > flee)
+            {
+              printf("%s\n", strcolor("You have been catch in your escape", 31));
+              getchar();
+              break;
+            }
+            else
+            {
+              printf("%s\n", strcolor("You lose your enemies, you did it !", 31));
+              getchar();
+              change_situation_t(last_situation);
+              return;
+            }
+          }
+          else //Warrior mind
+          {
+            turn_progress--;
+            break;
+          }
           break;
       }
     }
@@ -548,12 +572,24 @@ void show_shop()
   printf("\n\nCurrent gold : %d\n\nUse 'buy' or 'sell' to interact, see your inventory with 'status inventory'\nQuit the shop by typing 'exit shop'", character->gold_count);
 }
 
+char *color_keywords(const char* str, char *kw[10], int color)
+{
+  char *tmp = strdup(str);
+  //strcpy(tmp, str);
+  for(int i = 0; i < 10 && kw[i] != NULL; i++)
+  {
+    strcpy(tmp, repl_str(tmp, kw[i], strcolor(kw[i], color)));
+  }
+
+  return tmp;
+}
+
 //ALL LINES
-line_t l4_5 = { "pay(200) companion(0)" };
-line_t l4_4 = { "Perfect ! Give me 200gp and he will protect your for a while ! (action : *pay*)", {"pay"}, {&l4_5} };
-line_t l4_3 = { "Yann is one of our best element ! It is the guy with a leather jacket and dark hair at my left, want to *recruit* him (200gp)", {"recruit"}, {&l4_4} };
+line_t l4_5 = { "pay(200) companion(0) nxtsit(1)" };
+line_t l4_4 = { "Perfect ! Give me 200gp and he will protect your for a while ! (action : pay)", {"pay"}, {&l4_5} };
+line_t l4_3 = { "Yann is one of our best element ! It is the guy with a leather jacket and dark hair at my left, want to recruit him (200gp)", {"recruit"}, {&l4_4} };
 line_t l4_2 = { "It's none of your buisness, all I can tell you is that we have been well paid" };
-line_t l4_1 = { "Perfect ! Two of us already have a *mission* but *Yann* could *join* you.", {"mission", "Yann", "join"}, {&l4_2, &l4_3, &l4_4} };
+line_t l4_1 = { "Perfect ! Two of us already have a mission but Yann could join you.", {"mission", "Yann", "join"}, {&l4_2, &l4_3, &l4_4} };
 
 line_t l3_2 = { "The dark forest is full of spiders" };
 line_t l3_1 = { "nxtsit(3)" };
@@ -575,7 +611,7 @@ situation_t situations[100] = {
   { //ANARION_TAVERN_TAVERNER - 2
     TALK,
     "The taverner is an old man but he seems pretty strong for his age, he gives you a big smile when you approach",
-    .line = { "Hi stranger ! Are you here to *drink* or get *infos* ?", { "drink", "infos" }, { &l3_1, &l3_2 }}
+    .line = { "Hi stranger ! Are you here to drink or get infos ?", { "drink", "infos" }, { &l3_1, &l3_2 }}
   },
   { //ANARION_TAVERN_TAVERNER_SHOP - 3
     MERCHANT,
@@ -586,7 +622,8 @@ situation_t situations[100] = {
   { //ANARION_TAVERN_MERCENARIES - 4
     TALK,
     "Three mercenaries are talking around a beer, one of them see you approaching and inform his compagnions. The tallest talks to you",
-    .line = {"Welcome to our table ! Do you need our *services* ?", {"services"}, {&l4_1} }
+    .line = {"Welcome to our table ! Do you need our services ?", {"services"}, {&l4_1} },
+    .recruitable_companion = "Yann"
   },
   { //ANARION CASTLE - 5
     ROOM,

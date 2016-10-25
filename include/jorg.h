@@ -20,10 +20,13 @@ int roll_dice(char *name, int nb, int type, int bonus);
 
 void read_infos(info_t *infos, char *source);
 int read_function(char *str, char *fct);
+char *read_function_str(char *str, char *fct);
 int rand_lim(int limit);
 char* strrmv(char *text, char *removeword);
 void strsplit(char*words[50], char *string, char *separator);
 char* strrmvbfr(char str[255], char word[30]);
+char *strcolor(const char *str, const int color);
 char* mystrsep(char** stringp, const char* delim);
+char *repl_str(char *orig, char *rep, char *with);
 
 #endif /* _JORG_JORG_H */

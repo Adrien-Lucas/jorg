@@ -2,7 +2,6 @@
 
 #ifndef _JORG_CREATURE_H
 #define _JORG_CREATURE_H
-
 typedef struct
 {
   char *name;

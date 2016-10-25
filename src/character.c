@@ -35,6 +35,7 @@ void character_create()
       add_item(1,1);
       add_item(7,1);
       character->max_hp = 10 + get_bonus(character->stats.constitution);
+      character->max_mana = 5;
       character->bba = 1;
       //WARRIOR BASE STUFF
       break;
@@ -42,6 +43,7 @@ void character_create()
       add_item(9,1);
       add_item(8,1);
       character->max_hp = 6 + get_bonus(character->stats.constitution);
+      character->max_mana = 25;
       character->bba = 0;
       add_spell(0);
       add_spell(1);
@@ -59,6 +61,7 @@ void character_create()
   character->eqquiped_armor = character->inventory[1];
 
   character->curr_hp = character->max_hp;
+  character->curr_mana = character->max_mana;
   info_t *armor = malloc(sizeof(info_t));
   read_infos(armor, character->eqquiped_armor.note);
   character->ca = 10 + armor->bonus[0] + get_bonus(character->stats.dexterity);
@@ -100,14 +103,14 @@ void add_item(int id, int n)
 
 void rmv_item(int index, int n)
 {
-  char *name = character->inventory[index].name;
+  char *name = strdup(character->inventory[index].name);
   character->inventory[index].count -= n;
-  if(character->inventory[index].count == 0)
+  if(character->inventory[index].count <= 0)
   {
-      character->inventory[index] = items[0];
-      reorganize_inventory();
+    character->inventory[index] = items[0];
+    reorganize_inventory();
   }
-  printf("\n%s Removed from your inventory (see 'status inventory')\n\n", name);
+  printf("\n%d %s Removed from your inventory (see 'status inventory')\n\n", n, name);
 }
 
 void add_spell(int id)
@@ -130,10 +133,10 @@ void reorganize_inventory()
 {
   for(int i = 0; i < 31; i++)
   {
-    char *name = character->inventory[i].name;
+    char *name = strdup(character->inventory[i].name);
     if(strcmp(name, "empty") == 0)
     {
-      if(i < 30)
+      if(i < 29)
       {
         character->inventory[i] = character->inventory[i+1];
         character->inventory[i+1] = items[0];
