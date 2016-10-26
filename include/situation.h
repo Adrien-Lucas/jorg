@@ -11,7 +11,6 @@ typedef struct _line_t
   struct _line_t *next[10];
 } line_t;
 
-
 typedef enum { TALK, FIGHT, MERCHANT, ROOM, EXPLORE } situation_type_t;
 typedef struct
 {
@@ -34,6 +33,9 @@ typedef struct
   int market[100];
 
   //ROOM
+  char *interact_names[10];
+  char *interact_descriptions[10];
+  char *interacts[10];
 
   //EXPLORE
   char *explore_names[10];
@@ -41,16 +43,30 @@ typedef struct
 
 } situation_t;
 
+typedef struct
+{
+  int gold;
+  int items[30];
+  int count[30];
+} container_t;
+
+container_t containers[100];
+
 situation_t *current_situtation;
 situation_t *last_situation;
 situation_t *last_place;
 situation_t situations[100];
+
+int curr_sit;
+int last_pl;
+int last_sit;
 
 void line_init(line_t *ret, char *text, line_t *keyw[10]);
 void line_init_nokey(line_t *ret, char *text);
 void change_situation(int index);
 void change_situation_t(situation_t *sit);
 void show_shop();
+void open_container(int index);
 void show_fight();
 char *color_keywords(const char* str, char *kw[10], int color);
 

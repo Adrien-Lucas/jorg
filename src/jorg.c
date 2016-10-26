@@ -85,9 +85,7 @@ void read_infos(info_t *infos, char *source)
   {
     notes[i] = "empty";
   }
-  char *src = malloc(sizeof(char*));
-  strcpy(src, source);
-  //printf("src : %s\n", src);
+  char *src = strdup(source);
   strsplit(notes, src, " ");
   //GET SIZE
   int size;
@@ -108,8 +106,7 @@ void read_infos(info_t *infos, char *source)
     strsplit(bracket_separation, underscore_separation[effect_part], "(");
     infos->type[size] = bracket_separation[0];
     //GET VARS
-    char *vars = malloc(sizeof(char*));
-    strcpy(vars, bracket_separation[1]);
+    char *vars = strdup(bracket_separation[1]);
     strrmv(vars, ")");
     //Is constant ?
     if(strstr(vars, "d") != NULL)
@@ -142,8 +139,11 @@ void read_infos(info_t *infos, char *source)
       infos->bonus[size] = atoi(vars);
 
     //printf("Name : %s, Type : %s, DiceNb : %d, Dice : %d, Bonus : %d\n", infos->name[size], infos->type[size], infos->dice_nb[size], infos->dice[size], infos->bonus[size]);
+    free(vars);
   }
   infos->size = size;
+
+  free(src);
   //printf("Size : %d\n", infos->size);
 }
 
@@ -257,9 +257,7 @@ char* strrmvbfr(char str[255], char word[30])
         {
           newstr[b] = str[i+b];
         }
-        char *ret = malloc(sizeof(char*));
-        strcpy(ret, newstr);
-        return ret;
+        return strdup(newstr);
       }
     }
   }
@@ -309,15 +307,9 @@ char *strcolor(const char *str, const int color)
         break;
     }
   #else
-    char *start = malloc(sizeof(char *));
-    sprintf(start, "\x1b[%dm", color);
-    char *end = malloc(sizeof(char *));
-    strcpy(end, "\x1b[0m");
-    char *tmpstr = malloc(sizeof(char *));
-    strcat(tmpstr, start);
-    strcat(tmpstr, str);
-    strcat(tmpstr, end);
-    return tmpstr;
+    char* tmp = malloc(strlen(str) + 15);
+    sprintf(tmp, "\x1b[%dm%s\x1b[0m", color, str);
+    return tmp;
   #endif
 }
 

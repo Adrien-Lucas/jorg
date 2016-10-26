@@ -7,6 +7,7 @@
 #include "command.h"
 #include "item.h"
 #include "jorg.h"
+#include "save.h"
 
 void character_create()
 {
@@ -29,6 +30,12 @@ void character_create()
   {
     character->inventory[i] = items[0];
   }
+
+  character->has_companion = false;
+  character->level = 0;
+  character->experience = 0;
+  character->spell_count = 0;
+
   switch (character->class)
   {
     case 0:
@@ -65,6 +72,7 @@ void character_create()
   info_t *armor = malloc(sizeof(info_t));
   read_infos(armor, character->eqquiped_armor.note);
   character->ca = 10 + armor->bonus[0] + get_bonus(character->stats.dexterity);
+  free(armor);
 }
 
 void add_item(int id, int n)
@@ -131,16 +139,13 @@ void add_spell(int id)
 
 void reorganize_inventory()
 {
-  for(int i = 0; i < 31; i++)
+  for(int i = 0; i < 29; i++)
   {
     char *name = strdup(character->inventory[i].name);
     if(strcmp(name, "empty") == 0)
     {
-      if(i < 29)
-      {
-        character->inventory[i] = character->inventory[i+1];
-        character->inventory[i+1] = items[0];
-      }
+      character->inventory[i] = character->inventory[i+1];
+      character->inventory[i+1] = items[0];
     }
   }
 }

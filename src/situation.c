@@ -60,22 +60,44 @@ void line_init(line_t *ret, char *text, line_t *keyw[10])
 void change_situation(int index)
 {
   if((current_situtation->type == ROOM || current_situtation->type == EXPLORE) && (situations[index].type == ROOM || situations[index].type == EXPLORE))
+  {
     last_place = current_situtation;
+    last_pl = curr_sit;
+  }
+
   if(current_situtation->type != MERCHANT && current_situtation->type != TALK)
+  {
     last_situation = current_situtation;
+    last_sit = curr_sit;
+  }
 
   current_situtation = &situations[index];
+  curr_sit = index;
   situation();
 }
 
 void change_situation_t(situation_t *sit)
 {
+  int index = 0;
+  if(sit == last_place)
+    index = last_pl;
+  if(sit == last_situation)
+    index = last_sit;
+
   if((current_situtation->type == ROOM || current_situtation->type == EXPLORE) && (sit->type == ROOM || sit->type == EXPLORE))
+  {
     last_place = current_situtation;
+    last_pl = curr_sit;
+  }
   if(current_situtation->type != MERCHANT && current_situtation->type != TALK)
+  {
     last_situation = current_situtation;
+    last_sit = curr_sit;
+  }
 
   current_situtation = sit;
+  if(index > 0)
+    curr_sit = index;
   situation();
 }
 
@@ -572,17 +594,120 @@ void show_shop()
   printf("\n\nCurrent gold : %d\n\nUse 'buy' or 'sell' to interact, see your inventory with 'status inventory'\nQuit the shop by typing 'exit shop'", character->gold_count);
 }
 
+void open_container(int index)
+{
+  printf("%s\n", strcolor("\n                               = CONTAINER = ", 35));
+
+  printf("\n\n  %s : %d", strcolor("Gold", 33), containers[index].gold );
+  printf("\n\x1b[36m   N° |              NAME              | VALUE | COUNT |             INFOS               \x1b[0m\n");
+  for(int i = 0; i < 30 && containers[index].count[i] != 0; i++)
+  {
+    printf("\n - %-3d| %-31s| %-6d| %-6d| %-4s ", i, items[containers[index].items[i]].name, items[containers[index].items[i]].value, containers[index].count[i], items[containers[index].items[i]].note);
+  }
+  printf("\n\nUse 'take gold', 'take 'index' 'count'' or 'take all' to interact with this container\n");
+  printf("Quit the container by typing 'exit container'\n");
+
+  while(true)
+  {
+    printf("\n:");
+    char cmd[255];
+    fgets(cmd, 255, stdin);
+    size_t ln = strlen(cmd) - 1;
+    if (cmd[ln] == '\n')
+        cmd[ln] = '\0';
+
+    if(strstr(cmd, "take") != NULL)
+    {
+      if(strstr(cmd, "gold") != NULL)
+      {
+          character->gold_count += containers[index].gold;
+          printf( "%dgp added, you now have %dgp\n", containers[index].gold, character->gold_count );
+          containers[index].gold = 0;
+          open_container(index);
+          return;
+      }
+      else if(strstr(cmd, "all") != NULL)
+      {
+        for(int i = 0; i < 30 && containers[index].count[i] != 0; i++)
+        {
+          add_item(containers[index].items[i], 1);
+          containers[index].items[i] = 0;
+        }
+        strcpy(cmd, "exit");
+      }
+      else
+      {
+        char *only_arg = malloc(sizeof(char *));
+        strcpy(only_arg, cmd);
+        strrmv(only_arg, "take ");
+        strcat(only_arg, " ");
+        char *args[2];
+        strsplit(args, only_arg, " ");
+        int id = atoi(args[0]);
+        int n = atoi(args[1]);
+        if(n==0)
+          n = 1;
+
+        if(n > containers[index].count[id])
+        {
+          printf("The count is too high\n");
+          getchar();
+          open_container(index);
+          return;
+        }
+
+        add_item(containers[index].items[id], n);
+        containers[index].count[id] -= n;
+        for(int i = 0; i < 29; i++)
+        {
+          if(containers[index].count[i] == 0)
+          {
+            containers[index].items[i] = containers[index].items[i+1];
+            containers[index].items[i+1] = 0;
+            containers[index].count[i] = containers[index].count[i+1];
+            containers[index].count[i+1] = 0;
+          }
+        }
+        open_container(index);
+        return;
+      }
+    }
+    if(strstr(cmd, "exit") != NULL)
+    {
+      situation();
+      get_cmd();
+      return;
+    }
+    printf("\nThis command doesn't exist or is not possible when in a container\n");
+    printf("Use 'take 'index'' or 'take all' to interact with this container\n");
+    printf("Quit the container by typing 'exit container'\n");
+  }
+}
+
 char *color_keywords(const char* str, char *kw[10], int color)
 {
-  char *tmp = strdup(str);
+  char *tmp = malloc(strlen(str)*2);
+  strcpy(tmp, str);
   //strcpy(tmp, str);
   for(int i = 0; i < 10 && kw[i] != NULL; i++)
   {
     strcpy(tmp, repl_str(tmp, kw[i], strcolor(kw[i], color)));
   }
 
-  return tmp;
+  char* ret = strdup(tmp);
+  free(tmp);
+  return ret;
 }
+
+//ALL CONTAINERS
+container_t containers[100] =
+{
+  {
+    12,
+    { 1, 3, 5, 7 },
+    { 1, 10,2, 1 }
+  }
+};
 
 //ALL LINES
 line_t l4_5 = { "pay(200) companion(0) nxtsit(1)" };
@@ -627,13 +752,23 @@ situation_t situations[100] = {
   },
   { //ANARION CASTLE - 5
     ROOM,
-    "You get to the castle gate, two guards block your way"
+    "You get to the castle gate, two guards block your way",
+    .interact_names = {"gate"},
+    .interact_descriptions = {"A big steel gate"},
+    .interacts = {"nxtsit(7)"}
   },
-  { //ANARION FOREST
+  { //ANARION FOREST - 6
     FIGHT,
     "You are in the middle of the forest, you have defeated two wolfs here\nSouth is anarion's city\nYou can go in every directions",
     .attack_description = "You were walking in the forest when two wolfs attack you",
     .enemies_index = { 0, 0 },
     .tobe = EXPLORE
+  },
+  { //ANARION CASTLE - 7
+    ROOM,
+    "You are in the castle's hall, there is a HUGE BIG GREAT chest waiting for you",
+    .interact_names = {"chest"},
+    .interact_descriptions = {"a HUGE BIG GREAT chest"},
+    .interacts = {"container(0)"}
   }
 };

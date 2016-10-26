@@ -13,7 +13,6 @@ typedef struct
   int ca;
   int bba;
 
-  int action_number;
   char *actions;
 } creature_t;
 

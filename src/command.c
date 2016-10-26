@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "command.h"
+#include "save.h"
 #include "jorg.h"
 #include "character.h"
 #include "situation.h"
@@ -28,6 +29,14 @@ void get_cmd(void)
   {
     say(cmd);
   }
+  else if(strstr(cmd, "see") != NULL)
+  {
+    see(cmd);
+  }
+  else if(strstr(cmd, "interact") != NULL)
+  {
+    interact(cmd);
+  }
   else if(strstr(cmd, "go") != NULL)
   {
     go(cmd);
@@ -40,9 +49,17 @@ void get_cmd(void)
   {
     equip(cmd);
   }
+  else if(strstr(cmd, "use") != NULL)
+  {
+    use(cmd);
+  }
   else if(strstr(cmd, "situation") != NULL)
   {
     situation();
+  }
+  else if(strstr(cmd, "save") != NULL)
+  {
+    save("bran");
   }
   else if(strstr(cmd, "buy") != NULL)
   {
@@ -144,7 +161,7 @@ void status(char *arg)
     printf("\n\x1b[36m   N° |              NAME              | VALUE | COUNT |             INFOS               \x1b[0m\n");
     for(int i = 0; i < 30; i++)
     {
-      char *name = character->inventory[i].name;
+      char *name = strdup(character->inventory[i].name);
       if(strcmp(name, "empty") != 0)
       {
         if(strcmp(name, "Equipped") != 0 && (strstr(character->eqquiped_weap.name, name) != NULL || strstr(character->eqquiped_armor.name, name) != NULL))
@@ -162,6 +179,42 @@ void status(char *arg)
     {
       printf("\n - %-3d| %-31s| %-5d| %-6d| %-4s", i, character->spell_list[i].name, character->spell_list[i].cost, character->spell_list[i].shop_value, character->spell_list[i].effects);
     }
+  }
+  else if(strstr(arg, "companion") != NULL)
+  {
+    if(character->has_companion)
+    {
+      puts("\n\x1b[35m = COMPANION STATUS = \x1b[0mYour companion's status");
+      printf("\n   - \x1b[33mName :\x1b[0m");
+      printf("\n      %s\n", character->companion.name);
+      printf("\n   - \x1b[33mStats :\x1b[0m");
+      printf("\n      Strength      %d", character->companion.stats.strength);
+      printf("\n      Dexterity     %d", character->companion.stats.dexterity);
+      printf("\n      Constitution  %d", character->companion.stats.constitution);
+      printf("\n      Intellect     %d", character->companion.stats.intellect);
+      printf("\n      Wisdow        %d", character->companion.stats.wisdow);
+      printf("\n      Charisma      %d\n", character->companion.stats.charisma);
+      printf("\n   - \x1b[33mArmor class :\x1b[0m");
+      printf("\n      %d\n", character->companion.ca);
+      printf("\n   - \x1b[33mAttacks :\x1b[0m");
+
+      info_t *action = malloc(sizeof(info_t));
+      read_infos(action, character->companion.actions);
+      for(int i = 0; i < action->size; i++)
+      {
+        char bonus[7];
+        if(action->bonus[i] > 0)
+          sprintf(bonus, "+%d", action->bonus[i]);
+        else if(action->bonus[i] < 0)
+          sprintf(bonus, "%d", action->bonus[i]);
+        else
+          strcpy(bonus, "");
+
+        printf("\n      %s (%dd%d%s)\n", action->name[i], action->dice_nb[i], action->dice[i], bonus);
+      }
+    }
+    else
+      printf("You don't have any companion\n");
   }
   else
   {
@@ -186,7 +239,7 @@ void status(char *arg)
     printf("\n      %d\n", character->gold_count);
     if(character->has_companion)
     {
-      printf("\n   - \x1b[33mCompanion :\x1b[0m");
+      printf("\n   - \x1b[33mCompanion :\x1b[0m   (see 'status companion')");
       printf("\n      %s\n", character->companion.name);
     }
     printf("\nUse 'status inventory' to see your inventory and 'status spell' to see your spell list\n");
@@ -205,9 +258,9 @@ void equip(char *arg)
   char *name = character->inventory[id].name;
   if(id >= 0 && strcmp(name, "empty") != 0 && (character->inventory[id].type == ARMOR || character->inventory[id].type == WEAPON))
   {
-    if(character->inventory[id].type == ARMOR)
+    if(character->inventory[id].type == WEAPON)
       character->eqquiped_weap = character->inventory[id];
-    else
+    else if(character->inventory[id].type == ARMOR)
       character->eqquiped_armor = character->inventory[id];
 
     printf("%s Equipped successfully !\n", name);
@@ -215,6 +268,34 @@ void equip(char *arg)
   else
     printf("You cannot equip this item (see 'help equip')\n");
 
+  get_cmd();
+}
+
+void use(char *arg)
+{
+  char *only_arg = malloc(sizeof(char *));
+  strcpy(only_arg, arg);
+  strrmv(only_arg, "use ");
+
+  int id = atoi(only_arg);
+  char *name = character->inventory[id].name;
+  if(character->inventory[id].type == CONSUMABLE)
+  {
+    player_affected_effects(character->inventory[id].note, character->inventory[id].name);
+    rmv_item(id, 1);
+    if(character->curr_hp <= 0)
+    {
+      getchar();
+      printf("%s\n", strcolor("You killed yourself, really ?", 31));
+      getchar();
+      death();
+      return;
+    }
+  }
+  else
+  {
+    printf("%s is not a consumable\n", name);
+  }
   get_cmd();
 }
 
@@ -352,6 +433,64 @@ void say(char *arg)
   get_cmd();
 }
 
+void see(char *arg)
+{
+  _Bool find = false;
+  for(int i = 0; i < 10 && current_situtation->interact_names[i] != NULL; i++)
+  {
+    if(strstr(arg, current_situtation->interact_names[i]) != NULL)
+    {
+      printf("%s\n", current_situtation->interact_descriptions[i]);
+      find = true;
+    }
+  }
+  if(!find)
+  {
+    printf("There is no interactables object with this name (see 'help see')\n");
+  }
+
+  get_cmd();
+}
+
+void interact(char *arg)
+{
+  _Bool find = false;
+  for(int i = 0; i < 10 && current_situtation->interact_names[i] != NULL; i++)
+  {
+    if(strstr(arg, current_situtation->interact_names[i]) != NULL)
+    {
+      if(strstr(current_situtation->interacts[i], "additem(") != NULL)
+      {
+        int item = read_function(current_situtation->interacts[i], "additem");
+        add_item(item, 1);
+      }
+      if(strstr(current_situtation->interacts[i], "addspell(") != NULL)
+      {
+        int spell = read_function(current_situtation->interacts[i], "addspell");
+        add_spell(spell);
+      }
+      if(strstr(current_situtation->interacts[i], "container(") != NULL)
+      {
+        int container = read_function(current_situtation->interacts[i], "container");
+        open_container(container);
+      }
+      if(strstr(current_situtation->interacts[i], "nxtsit(") != NULL)
+      {
+        int sit = read_function(current_situtation->interacts[i], "nxtsit");
+        change_situation( sit );
+        return;
+      }
+      find = true;
+    }
+  }
+  if(!find)
+  {
+    printf("There is no interactables object with this name (see 'help see')\n");
+  }
+
+  get_cmd();
+}
+
 void go(char *arg)
 {
   if(strstr(arg, "back") != NULL)
@@ -380,11 +519,13 @@ void situation()
 {
   if(current_situtation->type != FIGHT)
   {
-    char *str = strdup(current_situtation->description);
+    char *str = malloc(strlen(current_situtation->description)*2);
+    strcpy(str, current_situtation->description);
     strcpy(str, color_keywords(str, current_situtation->explore_names, 31));
     strcpy(str, color_keywords(str, current_situtation->talk_names, 32));
+    strcpy(str, color_keywords(str, current_situtation->interact_names, 35));
     printf("%s\n", str);
-
+    free(str);
     if(current_situtation->type == MERCHANT)
       show_shop();
 
@@ -496,16 +637,6 @@ void sell(char *arg)
   }
 
   get_cmd();
-}
-
-void save()
-{
-
-}
-
-void load()
-{
-
 }
 
 void exit_cmd(char *arg)
