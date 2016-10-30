@@ -2,10 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stddef.h>
+#include <dirent.h>
 #include "jorg.h"
 #include "character.h"
 #include "command.h"
-#include <stddef.h>
+#include "save.h"
+
 
 #if (__STDC_VERSION__ >= 199901L)
 #include <stdint.h>
@@ -14,16 +17,61 @@
 void game_start(void)
 {
   print_welcome_text();
-  character_create();
 
-  char className[40];
-  get_class_name(className,character->class);
-  printf("\nWelcome to the world of Jorg %s the %s !", character->name, className);
-  puts("\nTo play you have to get commands, you can get any help at any moment by typing 'help'");
-  puts("\n\nAnd here start our story ...");
+  char *choices[2] = { "Create a new character", "Load a game" };
+  int choice = do_choice(" = START = ", choices, 2);
+  if(choice == 0)
+  {
+    character_create();
 
-  current_situtation = &situations[0];
-  situation();
+    char className[40];
+    get_class_name(className,character->class);
+    printf("\nWelcome to the world of Jorg %s the %s !", character->name, className);
+    puts("\nTo play you have to get commands, you can get any help at any moment by typing 'help'");
+    puts("\n\nAnd here start our story ...");
+
+    current_situtation = &situations[0];
+    situation();
+  }
+  else
+  {
+    _Bool valid = false;
+    while(!valid)
+    {
+      char *file_name = malloc(sizeof(char*));
+      ask(file_name, 50, "Save name");
+
+      if(strlen(file_name) > 1)
+      {
+        if(strstr(file_name, ".save") == NULL )
+          strcat(file_name, ".save");
+
+        DIR *dir;
+        struct dirent *ent;
+        if ((dir = opendir ("./save/")) != NULL)
+        {
+          while ((ent = readdir (dir)) != NULL)
+          {
+            if(strcmp(file_name, ent->d_name) == 0)
+            {
+              valid = true;
+              load(file_name);
+            }
+          }
+          closedir (dir);
+        }
+        else
+        {
+          /* could not open directory */
+          perror ("");
+        }
+      }
+      if(!valid)
+      {
+        printf("Invalid name\n");
+      }
+    }
+  }
 }
 
 void print_welcome_text(void)
@@ -96,6 +144,7 @@ void read_infos(info_t *infos, char *source)
     strsplit(underscore_separation, notes[size], "_");
     int effect_part = 0;
     //GET NAME
+    infos->name[size] = "";
     if(strstr(underscore_separation[0], "(") == NULL)
     {
         infos->name[size] = underscore_separation[0];
@@ -133,28 +182,26 @@ void read_infos(info_t *infos, char *source)
       else //No bonus
       {
         infos->dice[size] = atoi(d_separation[1]);
+        infos->bonus[size] = 0;
       }
     }
     else
       infos->bonus[size] = atoi(vars);
 
     //printf("Name : %s, Type : %s, DiceNb : %d, Dice : %d, Bonus : %d\n", infos->name[size], infos->type[size], infos->dice_nb[size], infos->dice[size], infos->bonus[size]);
-    free(vars);
   }
   infos->size = size;
 
-  free(src);
   //printf("Size : %d\n", infos->size);
 }
 
 //Read str like : nxtsit(750) and return 750.
 int read_function(char *str, char *fct)
 {
-  char* reader = malloc(sizeof(char*));
-  char* fct_name = malloc(sizeof(char*));
+  char* fct_name = strdup(fct);
   strcpy(fct_name, fct);
   strcat(fct_name, "(");
-  strcpy(reader, strrmvbfr(str, fct_name));
+  char* reader = strdup(strrmvbfr(str, fct_name));
   reader = strrmv(reader, fct_name);
 
   char *spliting[10];
@@ -164,11 +211,10 @@ int read_function(char *str, char *fct)
 
 char *read_function_str(char *str, char *fct)
 {
-  char* reader = malloc(sizeof(char*));
-  char* fct_name = malloc(sizeof(char*));
+  char* fct_name = strdup(fct);
   strcpy(fct_name, fct);
   strcat(fct_name, "(");
-  strcpy(reader, strrmvbfr(str, fct_name));
+  char* reader = strdup(strrmvbfr(str, fct_name));
   reader = strrmv(reader, fct_name);
 
   char *spliting[10];
@@ -261,7 +307,7 @@ char* strrmvbfr(char str[255], char word[30])
       }
     }
   }
-  return "error using strrmvbfr";
+  return "$error using strrmvbfr";
 }
 
 char* mystrsep(char** stringp, const char* delim)

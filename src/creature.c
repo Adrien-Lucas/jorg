@@ -13,7 +13,7 @@ creature_t creatures[100] =
   }
 };
 
-creature_t companions[10] =
+creature_t companions[1] =
 {
   {
     .name = "Yann",

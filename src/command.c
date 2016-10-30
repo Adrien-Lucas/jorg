@@ -59,7 +59,18 @@ void get_cmd(void)
   }
   else if(strstr(cmd, "save") != NULL)
   {
-    save("bran");
+    char *file_name = strdup(cmd);
+    strrmv(file_name, "save ");
+    save(file_name);
+    get_cmd();
+  }
+  else if(strstr(cmd, "load") != NULL)
+  {
+    char *file_name = strdup(cmd);
+    strrmv(file_name, "load ");
+    strcat(file_name, ".save");
+    load(file_name);
+    get_cmd();
   }
   else if(strstr(cmd, "buy") != NULL)
   {
@@ -159,15 +170,19 @@ void status(char *arg)
   {
     puts("\n\x1b[35m = INVENTORY = \x1b[0mYour current inventory");
     printf("\n\x1b[36m   N° |              NAME              | VALUE | COUNT |             INFOS               \x1b[0m\n");
+
     for(int i = 0; i < 30; i++)
     {
-      char *name = strdup(character->inventory[i].name);
-      if(strcmp(name, "empty") != 0)
+      if(strcmp(character->inventory[i].name, "empty") != 0)
       {
-        if(strcmp(name, "Equipped") != 0 && (strstr(character->eqquiped_weap.name, name) != NULL || strstr(character->eqquiped_armor.name, name) != NULL))
-          strcat(name, " (Equipped)");
+        _Bool equipped = false;
+        if(strcmp(character->inventory[i].name, "Equipped") != 0 && (strstr(character->eqquiped_weap.name, character->inventory[i].name) != NULL || strstr(character->eqquiped_armor.name, character->inventory[i].name) != NULL))
+          equipped = true;
 
-        printf("\n - %-3d| %-31s| %-6d| %-6d| %-4s", i, name, character->inventory[i].value, character->inventory[i].count, character->inventory[i].note);
+        if(equipped)
+          printf("\n - %-3d| (Equipped) %-20s| %-6d| %-6d| %-4s", i, character->inventory[i].name, character->inventory[i].value, character->inventory[i].count, character->inventory[i].note);
+        else
+          printf("\n - %-3d| %-31s| %-6d| %-6d| %-4s", i, character->inventory[i].name, character->inventory[i].value, character->inventory[i].count, character->inventory[i].note);
       }
     }
   }
@@ -198,19 +213,19 @@ void status(char *arg)
       printf("\n      %d\n", character->companion.ca);
       printf("\n   - \x1b[33mAttacks :\x1b[0m");
 
-      info_t *action = malloc(sizeof(info_t));
-      read_infos(action, character->companion.actions);
-      for(int i = 0; i < action->size; i++)
+      info_t action;
+      read_infos(&action, character->companion.actions);
+      for(int i = 0; i < action.size; i++)
       {
         char bonus[7];
-        if(action->bonus[i] > 0)
-          sprintf(bonus, "+%d", action->bonus[i]);
-        else if(action->bonus[i] < 0)
-          sprintf(bonus, "%d", action->bonus[i]);
+        if(action.bonus[i] > 0)
+          sprintf(bonus, "+%d", action.bonus[i]);
+        else if(action.bonus[i] < 0)
+          sprintf(bonus, "%d", action.bonus[i]);
         else
           strcpy(bonus, "");
 
-        printf("\n      %s (%dd%d%s)\n", action->name[i], action->dice_nb[i], action->dice[i], bonus);
+        printf("\n      %s (%dd%d%s)\n", action.name[i], action.dice_nb[i], action.dice[i], bonus);
       }
     }
     else
@@ -250,8 +265,7 @@ void status(char *arg)
 
 void equip(char *arg)
 {
-  char *only_arg = malloc(sizeof(char *));
-  strcpy(only_arg, arg);
+  char *only_arg = strdup(arg);
   strrmv(only_arg, "equip ");
 
   int id = atoi(only_arg);
@@ -273,8 +287,7 @@ void equip(char *arg)
 
 void use(char *arg)
 {
-  char *only_arg = malloc(sizeof(char *));
-  strcpy(only_arg, arg);
+  char *only_arg = strdup(arg);
   strrmv(only_arg, "use ");
 
   int id = atoi(only_arg);
@@ -328,7 +341,9 @@ void say(char *arg)
       else
       {
         current_line = &current_situtation->line;
-        printf("%s\n", color_keywords(current_line->text, current_line->keywords, 33));
+        char *colored = strdup(current_line->text);
+        color_keywords(colored, current_line->keywords, 33);
+        printf("%s\n", colored);
       }
     }
     else if(current_line != NULL && strstr(arg, "goodbye") != NULL)
@@ -410,7 +425,9 @@ void say(char *arg)
           }
           if(!is_command)
           {
-            printf("%s\n", color_keywords(current_line->next[i]->text, current_line->next[i]->keywords, 33));
+            char *colored = strdup(current_line->next[i]->text);
+            color_keywords(colored, current_line->next[i]->keywords, 33);
+            printf("%s\n", colored);
             if(current_line->next[i]->keywords[0] != NULL)
               current_line = current_line->next[i];
           }
@@ -519,13 +536,12 @@ void situation()
 {
   if(current_situtation->type != FIGHT)
   {
-    char *str = malloc(strlen(current_situtation->description)*2);
-    strcpy(str, current_situtation->description);
-    strcpy(str, color_keywords(str, current_situtation->explore_names, 31));
-    strcpy(str, color_keywords(str, current_situtation->talk_names, 32));
-    strcpy(str, color_keywords(str, current_situtation->interact_names, 35));
+    char *str = strdup(current_situtation->description);
+    color_keywords(str, current_situtation->explore_names, 31);
+    color_keywords(str, current_situtation->talk_names, 32);
+    color_keywords(str, current_situtation->interact_names, 35);
     printf("%s\n", str);
-    free(str);
+
     if(current_situtation->type == MERCHANT)
       show_shop();
 
@@ -545,14 +561,15 @@ void buy(char *arg)
 {
   if(current_situtation->type == MERCHANT)
   {
-    char *only_arg = malloc(sizeof(char *));
-    strcpy(only_arg, arg);
+    char *only_arg = strdup(arg);
     strrmv(only_arg, "buy ");
 
     char *args[2];
     strsplit(args, only_arg, " ");
     int id = atoi(args[0]);
-    int n = atoi(args[1]);
+    int n = 0;
+    if(strlen(args[1])>1)
+      n = atoi(args[1]);
     if(n==0)
       n = 1;
     if(id < current_situtation->market_size)
@@ -593,8 +610,7 @@ void sell(char *arg)
 {
   if(current_situtation->type == MERCHANT)
   {
-    char *only_arg = malloc(sizeof(char *));
-    strcpy(only_arg, arg);
+    char *only_arg = strdup(arg);
     strrmv(only_arg, "sell ");
 
     char *args[2];

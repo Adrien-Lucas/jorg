@@ -161,15 +161,17 @@ void show_fight()
   getchar();
 
   _Bool fight_over = false;
+
   int turn = 0;
   int turn_progress = 0;
-
   int count;
+
   char *selection[enemies_nb+1];
   char temp_string[enemies_nb+1][100];
-
   char *spell_choices[character->spell_count+1];
   char spells_string[character->spell_count+1][200];
+
+  info_t action_infos;
 
   while(fight_over == false)
   {
@@ -185,7 +187,6 @@ void show_fight()
       int choice = do_choice( "What do you do ?", choices, 4 );
 
       int target;
-      info_t *action_infos = malloc(sizeof(info_t));
       switch(choice)
       {
         //ATTACK
@@ -203,7 +204,7 @@ void show_fight()
               if(instances[i].hp <= 0)
                 snprintf(temp_string[i], 100, "%s   (Dead)", instances[i].name);
 
-              selection[i] = strdup(temp_string[i]);
+              selection[i] = temp_string[i];
             }
             else
               selection[i] = "Back";
@@ -230,11 +231,11 @@ void show_fight()
           if(hit >= instances[target].ca)
           {
             //Damage
-            printf("You hit %s  (%s)\n", instances[target].name, character->eqquiped_weap.name);
-            read_infos(action_infos, character->eqquiped_weap.note);
+            printf("You hit %s\n", instances[target].name);
+            read_infos(&action_infos, character->eqquiped_weap.note);
             char *action = malloc(sizeof(char*));
             sprintf(action, "Damage %s with %s", instances[target].name, character->eqquiped_weap.name);
-            instances[target].hp -= roll_dice(action, action_infos->dice_nb[0], action_infos->dice[0], action_infos->bonus[0] + get_bonus(character->stats.strength));
+            instances[target].hp -= roll_dice(action, action_infos.dice_nb[0], action_infos.dice[0], action_infos.bonus[0] + get_bonus(character->stats.strength));
             if(instances[target].hp <= 0)
             {
               printf("%s died \n", instances[target].name);
@@ -296,7 +297,7 @@ void show_fight()
                 snprintf(temp_string[i], 100, "%s   (Dead)", instances[i].name);
               else
               {
-                if(i == enemies_nb-1) //companion
+                if(character->has_companion && i == enemies_nb-1) //companion
                   snprintf(temp_string[i], 100, "%s   %d/%d HP", instances[i].name, instances[i].hp, character->companion.hp);
                 else //enemy
                   snprintf(temp_string[i], 100, "%s   %d/%d HP", instances[i].name, instances[i].hp, creatures[current_situtation->enemies_index[i]].hp);
@@ -367,8 +368,7 @@ void show_fight()
           {
             if(character->inventory[i].type == CONSUMABLE)
             {
-              char *tmpstr = malloc(10*sizeof(char *));
-              strcpy(tmpstr, character->inventory[i].name);
+              char *tmpstr = strdup(character->inventory[i].name);
               char itoa[3];
               sprintf(itoa, " - Count : %d", character->inventory[i].count );
               strcat(tmpstr, itoa);
@@ -447,7 +447,7 @@ void show_fight()
     }
 
     // ================ NPCS turn ===============
-    else if(instances[order[turn_progress]].hp > 0 && !fight_over)// npc turn
+    else if(instances[order[turn_progress]].hp > 0 && fight_over == false)// npc turn
     {
       int index = order[turn_progress];
       printf("\n\x1b[31m = %s's turn = \x1b[0m", instances[index].name);
@@ -484,11 +484,10 @@ void show_fight()
         {
           //Damage
           printf("%s hit %s\n", instances[index].name, NAME);
-          info_t *attacks = malloc(sizeof(info_t));
-          read_infos(attacks, instances[index].actions);
-          int rand_action = rand() % attacks->size;
-          int dmg = roll_dice(attacks->name[rand_action], attacks->dice_nb[rand_action], attacks->dice[rand_action], attacks->bonus[rand_action] + get_bonus(instances[index].stats.strength));
-          printf("%s deals %d damages to %s with %s\n", instances[index].name, dmg, NAME, attacks->name[rand_action]);
+          read_infos(&action_infos, instances[index].actions);
+          int rand_action = rand() % action_infos.size;
+          int dmg = roll_dice(action_infos.name[rand_action], action_infos.dice_nb[rand_action], action_infos.dice[rand_action], action_infos.bonus[rand_action] + get_bonus(instances[index].stats.strength));
+          printf("%s deals %d damages to %s with %s\n", instances[index].name, dmg, NAME, action_infos.name[rand_action]);
 
           if(rand_target == 0)
           {
@@ -531,11 +530,10 @@ void show_fight()
         {
           //Damage
           printf("%s hit %s\n", character->companion.name, instances[rand_target].name);
-          info_t *attacks = malloc(sizeof(info_t));
-          read_infos(attacks, character->companion.actions);
-          int rand_action = rand() % attacks->size;
-          int dmg = roll_dice(attacks->name[rand_action], attacks->dice_nb[rand_action], attacks->dice[rand_action], attacks->bonus[rand_action] + get_bonus(instances[index].stats.strength));
-          printf("%s deals %d damages to %s with %s\n", character->companion.name, dmg, instances[rand_target].name, attacks->name[rand_action]);
+          read_infos(&action_infos, character->companion.actions);
+          int rand_action = rand() % action_infos.size;
+          int dmg = roll_dice(action_infos.name[rand_action], action_infos.dice_nb[rand_action], action_infos.dice[rand_action], action_infos.bonus[rand_action] + get_bonus(instances[index].stats.strength));
+          printf("%s deals %d damages to %s with %s\n", character->companion.name, dmg, instances[rand_target].name, action_infos.name[rand_action]);
           instances[rand_target].hp -= dmg;
 
           if(instances[rand_target].hp <= 0)
@@ -632,13 +630,16 @@ void open_container(int index)
         {
           add_item(containers[index].items[i], 1);
           containers[index].items[i] = 0;
+          containers[index].count[i] = 0;
         }
+        character->gold_count += containers[index].gold;
+        printf( "%dgp added, you now have %dgp\n", containers[index].gold, character->gold_count );
+        containers[index].gold = 0;
         strcpy(cmd, "exit");
       }
       else
       {
-        char *only_arg = malloc(sizeof(char *));
-        strcpy(only_arg, cmd);
+        char *only_arg = strdup(cmd);
         strrmv(only_arg, "take ");
         strcat(only_arg, " ");
         char *args[2];
@@ -684,23 +685,16 @@ void open_container(int index)
   }
 }
 
-char *color_keywords(const char* str, char *kw[10], int color)
+void color_keywords(char* str, char *kw[], int color)
 {
-  char *tmp = malloc(strlen(str)*2);
-  strcpy(tmp, str);
-  //strcpy(tmp, str);
-  for(int i = 0; i < 10 && kw[i] != NULL; i++)
+  for(int i = 0; i < 10 && kw[i] != NULL && strlen(kw[i]) > 1 ; i++)
   {
-    strcpy(tmp, repl_str(tmp, kw[i], strcolor(kw[i], color)));
+    strcpy(str, repl_str(str, kw[i], strcolor(kw[i], color)));
   }
-
-  char* ret = strdup(tmp);
-  free(tmp);
-  return ret;
 }
 
 //ALL CONTAINERS
-container_t containers[100] =
+container_t containers[10] =
 {
   {
     12,

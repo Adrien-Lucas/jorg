@@ -50,7 +50,7 @@ typedef struct
   int count[30];
 } container_t;
 
-container_t containers[100];
+container_t containers[10];
 
 situation_t *current_situtation;
 situation_t *last_situation;
@@ -68,6 +68,6 @@ void change_situation_t(situation_t *sit);
 void show_shop();
 void open_container(int index);
 void show_fight();
-char *color_keywords(const char* str, char *kw[10], int color);
+void color_keywords(char* str, char *kw[10], int color);
 
 #endif /* _JORG_SITUATION_H */

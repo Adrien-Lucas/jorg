@@ -95,6 +95,8 @@ void creature_affected_effects(char *effects, char *name, creature_t *instance, 
       printf("%s heals %s of %d\n", character->name, instance->name, healed);
     }
   }
+
+  free(action_infos);
 }
 
 void player_affected_effects(char *effects, char *name)
@@ -141,4 +143,6 @@ void player_affected_effects(char *effects, char *name)
       printf("%s heals %s of %d\n", name, character->name, healed);
     }
   }
+
+  free(action_infos);
 }

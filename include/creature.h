@@ -17,6 +17,6 @@ typedef struct
 } creature_t;
 
 creature_t creatures[100];
-creature_t companions[10];
+creature_t companions[1];
 
 #endif /* _JORG_CREATURE_H */

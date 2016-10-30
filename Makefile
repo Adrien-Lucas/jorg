@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-c -Wall -std=gnu99 -g
+CFLAGS=-c -Wall -std=gnu99
 LDFLAGS=-Iinclude
 SOURCES=src/main.c src/jorg.c src/character.c src/command.c src/situation.c src/item.c src/class.c src/spell.c src/creature.c src/save.c
 OBJECTS=$(SOURCES:.c=.o)
