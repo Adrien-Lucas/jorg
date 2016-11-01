@@ -57,6 +57,13 @@ void get_cmd(void)
   {
     situation();
   }
+  else if(strstr(cmd, "levelup") != NULL)
+  {
+    if(character->experience >= needed_xp(character->level+1))
+      levelup();
+    else
+      printf("You don't have enough XP to get a new level\n");
+  }
   else if(strstr(cmd, "save") != NULL)
   {
     char *file_name = strdup(cmd);
@@ -203,12 +210,12 @@ void status(char *arg)
       printf("\n   - \x1b[33mName :\x1b[0m");
       printf("\n      %s\n", character->companion.name);
       printf("\n   - \x1b[33mStats :\x1b[0m");
-      printf("\n      Strength      %d", character->companion.stats.strength);
-      printf("\n      Dexterity     %d", character->companion.stats.dexterity);
-      printf("\n      Constitution  %d", character->companion.stats.constitution);
-      printf("\n      Intellect     %d", character->companion.stats.intellect);
-      printf("\n      Wisdow        %d", character->companion.stats.wisdow);
-      printf("\n      Charisma      %d\n", character->companion.stats.charisma);
+      printf("\n      Strength      %-2d %s%d)", character->companion.stats.strength, get_bonus(character->companion.stats.strength)>0?"(+":"(", get_bonus(character->companion.stats.strength));
+      printf("\n      Dexterity     %-2d %s%d)", character->companion.stats.dexterity, get_bonus(character->companion.stats.dexterity)>0?"(+":"(", get_bonus(character->companion.stats.dexterity));
+      printf("\n      Constitution  %-2d %s%d)", character->companion.stats.constitution, get_bonus(character->companion.stats.constitution)>0?"(+":"(", get_bonus(character->companion.stats.constitution));
+      printf("\n      Intellect     %-2d %s%d)", character->companion.stats.intellect, get_bonus(character->companion.stats.intellect)>0?"(+":"(", get_bonus(character->companion.stats.intellect));
+      printf("\n      Wisdow        %-2d %s%d)", character->companion.stats.wisdow, get_bonus(character->companion.stats.wisdow)>0?"(+":"(", get_bonus(character->companion.stats.wisdow));
+      printf("\n      Charisma      %-2d %s%d)\n", character->companion.stats.charisma, get_bonus(character->companion.stats.charisma)>0?"(+":"(", get_bonus(character->companion.stats.charisma));
       printf("\n   - \x1b[33mArmor class :\x1b[0m");
       printf("\n      %d\n", character->companion.ca);
       printf("\n   - \x1b[33mAttacks :\x1b[0m");
@@ -241,13 +248,16 @@ void status(char *arg)
     printf("\n      %s\n", character->name);
     printf("\n   - \x1b[33mClass :\x1b[0m");
     printf("\n      %s\n", className);
+    printf("\n   - \x1b[33mProgression :\x1b[0m");
+    printf("\n      Level %d", character->level);
+    printf("\n      %d / %d XP\n", character->experience, needed_xp(character->level+1));
     printf("\n   - \x1b[33mStats :\x1b[0m");
-    printf("\n      Strength      %d", character->stats.strength);
-    printf("\n      Dexterity     %d", character->stats.dexterity);
-    printf("\n      Constitution  %d", character->stats.constitution);
-    printf("\n      Intellect     %d", character->stats.intellect);
-    printf("\n      Wisdow        %d", character->stats.wisdow);
-    printf("\n      Charisma      %d\n", character->stats.charisma);
+    printf("\n      Strength      %-2d %s%d)", character->stats.strength, get_bonus(character->stats.strength)>0?"(+":"(", get_bonus(character->stats.strength));
+    printf("\n      Dexterity     %-2d %s%d)", character->stats.dexterity, get_bonus(character->stats.dexterity)>0?"(+":"(", get_bonus(character->stats.dexterity));
+    printf("\n      Constitution  %-2d %s%d)", character->stats.constitution, get_bonus(character->stats.constitution)>0?"(+":"(", get_bonus(character->stats.constitution));
+    printf("\n      Intellect     %-2d %s%d)", character->stats.intellect, get_bonus(character->stats.intellect)>0?"(+":"(", get_bonus(character->stats.intellect));
+    printf("\n      Wisdow        %-2d %s%d)", character->stats.wisdow, get_bonus(character->stats.wisdow)>0?"(+":"(", get_bonus(character->stats.wisdow));
+    printf("\n      Charisma      %-2d %s%d)\n", character->stats.charisma, get_bonus(character->stats.charisma)>0?"(+":"(", get_bonus(character->stats.charisma));
     printf("\n   - \x1b[33mArmor class :\x1b[0m");
     printf("\n      %d\n", character->ca);
     printf("\n   - \x1b[33mGold :\x1b[0m");

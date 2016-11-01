@@ -567,7 +567,15 @@ void show_fight()
 
   current_situtation->type = current_situtation->tobe;
   printf("Fight is over ! Well play\n");
+  int xp_earned = 0;
+  for(int i = 0; i < enemies_nb; i++)
+  {
+    xp_earned += instances[i].xp;
+  }
+  printf("You have earned %d XP\n", xp_earned);
   getchar();
+  character->experience += xp_earned;
+  check_progression();
   situation();
 }
 

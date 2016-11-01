@@ -12,7 +12,7 @@ install:
 	install -m 755 $(EXECUTABLE) /usr/local/bin
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ -lm
 
 clean:
 	find . -name "*.o" -delete

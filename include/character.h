@@ -16,6 +16,7 @@ typedef struct
   unsigned int experience;
   stats_t stats;
 
+  int life_dice;
   int bba;
   int ca;
   int max_hp;
@@ -48,6 +49,9 @@ void get_class_name(char answer[], class_t class);
 void add_item(int id, int n);
 void rmv_item(int index, int n);
 void add_spell(int id);
+int needed_xp();
+void check_progression();
+void levelup();
 void death();
 void reorganize_inventory();
 

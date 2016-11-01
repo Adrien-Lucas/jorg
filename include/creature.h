@@ -8,12 +8,13 @@ typedef struct
   char *description;
 
   stats_t stats;
-  int level;
   int hp;
   int ca;
   int bba;
 
   char *actions;
+
+  int xp;
 } creature_t;
 
 creature_t creatures[100];
