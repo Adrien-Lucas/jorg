@@ -59,45 +59,18 @@ void line_init(line_t *ret, char *text, line_t *keyw[10])
 
 void change_situation(int index)
 {
-  if((current_situtation->type == ROOM || current_situtation->type == EXPLORE) && (situations[index].type == ROOM || situations[index].type == EXPLORE))
-  {
-    last_place = current_situtation;
-    last_pl = curr_sit;
-  }
-
-  if(current_situtation->type != MERCHANT && current_situtation->type != TALK)
-  {
-    last_situation = current_situtation;
-    last_sit = curr_sit;
-  }
+  if((current_situtation->type != MERCHANT && current_situtation->type != TALK) || (current_situtation->type == TALK && situations[index].type == MERCHANT))
+    situations[index].last_situation = curr_sit;
 
   current_situtation = &situations[index];
   curr_sit = index;
   situation();
 }
 
-void change_situation_t(situation_t *sit)
+void change_situation_quiet(int index)
 {
-  int index = 0;
-  if(sit == last_place)
-    index = last_pl;
-  if(sit == last_situation)
-    index = last_sit;
-
-  if((current_situtation->type == ROOM || current_situtation->type == EXPLORE) && (sit->type == ROOM || sit->type == EXPLORE))
-  {
-    last_place = current_situtation;
-    last_pl = curr_sit;
-  }
-  if(current_situtation->type != MERCHANT && current_situtation->type != TALK)
-  {
-    last_situation = current_situtation;
-    last_sit = curr_sit;
-  }
-
-  current_situtation = sit;
-  if(index > 0)
-    curr_sit = index;
+  current_situtation = &situations[index];
+  curr_sit = index;
   situation();
 }
 
@@ -433,7 +406,7 @@ void show_fight()
             {
               printf("%s\n", strcolor("You lose your enemies, you did it !", 31));
               getchar();
-              change_situation_t(last_situation);
+              change_situation(current_situtation->last_situation);
               return;
             }
           }
@@ -702,7 +675,7 @@ void color_keywords(char* str, char *kw[], int color)
 }
 
 //ALL CONTAINERS
-container_t containers[10] =
+container_t containers[1] =
 {
   {
     12,
@@ -722,7 +695,7 @@ line_t l3_2 = { "The dark forest is full of spiders" };
 line_t l3_1 = { "nxtsit(3)" };
 
 //ALL SITUATIONS
-situation_t situations[100] = {
+situation_t situations[10] = {
   { //ANARION PLACE - 0
     EXPLORE,
     "You are in the middle of the village of Anarion, the place is full of life and the weather is pretty good\nAt your right is the tavern\nIn front of you siege the castle of the Anarion's lord\nBehind you, the gate of the city gives on the anarion's forest",

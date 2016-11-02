@@ -16,6 +16,7 @@ typedef struct
 {
   situation_type_t type;
   char *description;
+  int last_situation;
 
   //TALK
   char *talk_names[10];
@@ -50,21 +51,17 @@ typedef struct
   int count[30];
 } container_t;
 
-container_t containers[10];
+container_t containers[1];
 
 situation_t *current_situtation;
-situation_t *last_situation;
-situation_t *last_place;
-situation_t situations[100];
+situation_t situations[10];
 
 int curr_sit;
-int last_pl;
-int last_sit;
 
 void line_init(line_t *ret, char *text, line_t *keyw[10]);
 void line_init_nokey(line_t *ret, char *text);
 void change_situation(int index);
-void change_situation_t(situation_t *sit);
+void change_situation_quiet(int index);
 void show_shop();
 void open_container(int index);
 void show_fight();

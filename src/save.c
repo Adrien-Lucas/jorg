@@ -52,14 +52,11 @@ void save(char *file_name)
   }
   //Save situations
   int nb = sizeof(situations) / sizeof(situation_t);
-
   for(int i = 0; i < nb; i++)
   {
-    if(situations[i].tobe == EXPLORE || situations[i].tobe == ROOM)
-    {
-      fprintf(fp, "<situation(%d)>\r\n", i);
-      fprintf(fp, "%d\r\n", situations[i].type);
-    }
+    fprintf(fp, "<situation(%d)>\r\n", i);
+    fprintf(fp, "%d\r\n", situations[i].type);
+    fprintf(fp, "%d\r\n", situations[i].last_situation);
   }
 
   //Save containers
@@ -76,10 +73,6 @@ void save(char *file_name)
   }
   fprintf(fp, "<situation/curr>\r\n");
   fprintf(fp, "%d\r\n", curr_sit);
-  fprintf(fp, "<situation/last_place>\r\n");
-  fprintf(fp, "%d\r\n", last_pl);
-  fprintf(fp, "<situation/last_situation>\r\n");
-  fprintf(fp, "%d\r\n", last_sit);
   fclose(fp);
 
   printf("%s (Use 'load *save name* to load a saved game')\n", strcolor("Game successfully saved !", 35));
@@ -185,6 +178,7 @@ void load(char *file_name)
     {
       int index = read_function(buffer, "situation");
       situations[index].type = atoi(fgets(buffer, sizeof buffer, fp));
+      situations[index].last_situation = atoi(fgets(buffer, sizeof buffer, fp));
     }
     if(strstr(buffer, "<container(") != NULL)
     {
@@ -212,16 +206,6 @@ void load(char *file_name)
     {
       curr_sit = atoi(fgets(buffer, sizeof buffer, fp));
       current_situtation = &situations[curr_sit];
-    }
-    if(strstr(buffer, "<situation/last_place>") != NULL)
-    {
-      last_pl = atoi(fgets(buffer, sizeof buffer, fp));
-      last_place = &situations[last_pl];
-    }
-    if(strstr(buffer, "<situation/last_situation>") != NULL)
-    {
-      last_sit = atoi(fgets(buffer, sizeof buffer, fp));
-      last_situation = &situations[last_sit];
     }
   }
   printf("Progress 100%c\n", '%');

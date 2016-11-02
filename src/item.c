@@ -6,7 +6,6 @@
 
 
 
-
 item_t items[100] = {
   { "empty" },
   { .name = "Iron Sword", .value = 10, WEAPON, "Damage(1d6)", 0 },                   //1

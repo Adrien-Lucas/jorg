@@ -360,7 +360,7 @@ void say(char *arg)
     {
       current_line = NULL;
       printf("\nGoodbye\n");
-      change_situation_t(last_situation);
+      change_situation(current_situtation->last_situation);
       return;
     }
     else if(current_line != NULL)
@@ -380,7 +380,7 @@ void say(char *arg)
             else
             {
               printf("You don't have enough money, come back when you'll have %dgp\n", price);
-              change_situation_t( last_situation );
+              change_situation(current_situtation->last_situation);
               return;
             }
             is_command = true;
@@ -520,24 +520,29 @@ void interact(char *arg)
 
 void go(char *arg)
 {
-  if(strstr(arg, "back") != NULL)
+  if(current_situtation->type == ROOM || current_situtation->type == EXPLORE)
   {
-    /*current_situtation = last_place;
-    printf("%s\n", current_situtation->description);*/
-    change_situation_t(last_place);
+    if(strstr(arg, "back") != NULL)
+    {
+      /*current_situtation = last_place;
+      printf("%s\n", current_situtation->description);*/
+      change_situation_quiet(current_situtation->last_situation);
+    }
+    else
+    {
+      for (int i = 0; i < 10; i++)
+      {
+        if(current_situtation->explore_names[i] != NULL && strstr(arg, current_situtation->explore_names[i]) != NULL)
+        {
+          change_situation( current_situtation->explore_index[i] );
+          return;
+        }
+      }
+      printf("\nThere is no such place, are you lost ?");
+    }
   }
   else
-  {
-    for (int i = 0; i < 10; i++)
-    {
-      if(current_situtation->explore_names[i] != NULL && strstr(arg, current_situtation->explore_names[i]) != NULL)
-      {
-        change_situation( current_situtation->explore_index[i] );
-        return;
-      }
-    }
-    printf("\nThere is no such place, are you lost ?");
-  }
+    printf("\nYou can't travel in the current situation");
 
   get_cmd();
 }
@@ -671,7 +676,7 @@ void exit_cmd(char *arg)
   {
     if(current_situtation->type == MERCHANT)
     {
-      change_situation_t(last_situation);
+      change_situation(current_situtation->last_situation);
       return;
     }
     else
