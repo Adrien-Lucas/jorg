@@ -8,13 +8,15 @@
 #ifndef _JORG_ITEM_H
 #define _JORG_ITEM_H
 
-typedef enum { MISC, WEAPON, ARMOR, CONSUMABLE } item_type_t;
+typedef enum { MISC, WEAPON, ARMOR, CONSUMABLE, BOOK } item_type_t;
 typedef struct
 {
   char name[30];
   int value;
   item_type_t type;
   char note[50];
+
+  int book_id;
 
   //used in game var
   int count;

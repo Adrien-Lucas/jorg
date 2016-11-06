@@ -7,7 +7,7 @@
 #ifndef _JORG_CHARACTER_H
 #define _JORG_CHARACTER_H
 
-typedef enum { WARRIOR, WIZARD, ROGUE, PRIEST } class_t;
+typedef enum { WARRIOR, WIZARD, ROGUE } class_t;
 typedef struct
 {
   char name[40];

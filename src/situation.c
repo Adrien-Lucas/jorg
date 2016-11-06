@@ -77,6 +77,11 @@ void change_situation_quiet(int index)
 
 void show_fight()
 {
+  info_t *armor = malloc(sizeof(info_t));
+  read_infos(armor, character->eqquiped_armor.note);
+  character->ca = 10 + armor->bonus[0] + get_bonus(character->stats.dexterity);
+  free(armor);
+
   printf("\n\x1b[35m               = COMBAT = \x1b[0m\n");
   printf("\n\x1b[31m%s\x1b[0m\n", current_situtation->attack_description);
 
@@ -420,7 +425,7 @@ void show_fight()
     }
 
     // ================ NPCS turn ===============
-    else if(instances[order[turn_progress]].hp > 0 && fight_over == false)// npc turn
+    else if(fight_over != true && instances[order[turn_progress]].hp > 0)// npc turn
     {
       int index = order[turn_progress];
       printf("\n\x1b[31m = %s's turn = \x1b[0m", instances[index].name);
@@ -675,27 +680,44 @@ void color_keywords(char* str, char *kw[], int color)
 }
 
 //ALL CONTAINERS
-container_t containers[1] =
+container_t containers[2] =
 {
   {
+    8,
+    { 61, 43, 47, 3 },
+    {  1,  1,  1, 1 }
+  },
+  {
     12,
-    { 1, 3, 5, 7 },
-    { 1, 10,2, 1 }
+    { 80, 81, 41, 5 },
+    {  1,  3,  1, 1 }
+  }
+};
+
+//ALL SITUATIONS
+situation_t situations[10] = {
+  { //Start
+    EXPLORE,
+    "You woke up in the middle of an abandonned chaos.\nA dozen corpses lies on the ground and no one seems to be alive.\nThe caravan is no more protected by anyone.\nThe road leads from south to north.\nYou are surrounded by forest ont the east and west",
+    .explore_names = { "north", "west", "south", "east" },
+    .explore_index = { 0, 0, 0, 0 },
+    .interact_names = { "corpses", "caravan" },
+    .interacts = { "container(0)", "container(1)"}
   }
 };
 
 //ALL LINES
-line_t l4_5 = { "pay(200) companion(0) nxtsit(1)" };
+/*line_t l4_5 = { "pay(200) companion(0) nxtsit(1)" };
 line_t l4_4 = { "Perfect ! Give me 200gp and he will protect your for a while ! (action : pay)", {"pay"}, {&l4_5} };
 line_t l4_3 = { "Yann is one of our best element ! It is the guy with a leather jacket and dark hair at my left, want to recruit him (200gp)", {"recruit"}, {&l4_4} };
 line_t l4_2 = { "It's none of your buisness, all I can tell you is that we have been well paid" };
 line_t l4_1 = { "Perfect ! Two of us already have a mission but Yann could join you.", {"mission", "Yann", "join"}, {&l4_2, &l4_3, &l4_4} };
 
 line_t l3_2 = { "The dark forest is full of spiders" };
-line_t l3_1 = { "nxtsit(3)" };
+line_t l3_1 = { "nxtsit(3)" };*/
 
 //ALL SITUATIONS
-situation_t situations[10] = {
+/*situation_t situations[10] = {
   { //ANARION PLACE - 0
     EXPLORE,
     "You are in the middle of the village of Anarion, the place is full of life and the weather is pretty good\nAt your right is the tavern\nIn front of you siege the castle of the Anarion's lord\nBehind you, the gate of the city gives on the anarion's forest",
@@ -746,4 +768,4 @@ situation_t situations[10] = {
     .interact_descriptions = {"a HUGE BIG GREAT chest"},
     .interacts = {"container(0)"}
   }
-};
+};*/

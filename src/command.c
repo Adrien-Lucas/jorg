@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <dirent.h>
 #include "command.h"
 #include "save.h"
 #include "jorg.h"
 #include "character.h"
 #include "situation.h"
+#include "book.h"
 
 void get_cmd(void)
 {
@@ -53,6 +55,10 @@ void get_cmd(void)
   {
     use(cmd);
   }
+  else if(strstr(cmd, "throw") != NULL)
+  {
+    throw(cmd);
+  }
   else if(strstr(cmd, "situation") != NULL)
   {
     situation();
@@ -73,10 +79,7 @@ void get_cmd(void)
   }
   else if(strstr(cmd, "load") != NULL)
   {
-    char *file_name = strdup(cmd);
-    strrmv(file_name, "load ");
-    strcat(file_name, ".save");
-    load(file_name);
+    load_cmd(cmd);
     get_cmd();
   }
   else if(strstr(cmd, "buy") != NULL)
@@ -192,6 +195,9 @@ void status(char *arg)
           printf("\n - %-3d| %-31s| %-6d| %-6d| %-4s", i, character->inventory[i].name, character->inventory[i].value, character->inventory[i].count, character->inventory[i].note);
       }
     }
+    if(strcmp(character->eqquiped_weap.name, items[1].name) == 0)
+      printf("\n -    | (Equipped) Fists               | N/A   | 1     | Damage(1d3)\n");
+
   }
   else if(strstr(arg, "spell") != NULL)
   {
@@ -242,6 +248,12 @@ void status(char *arg)
   {
     char className[40];
     get_class_name(className, character->class);
+
+    info_t *armor = malloc(sizeof(info_t));
+    read_infos(armor, character->eqquiped_armor.note);
+    character->ca = 10 + armor->bonus[0] + get_bonus(character->stats.dexterity);
+    free(armor);
+
     puts("\n\x1b[35m = STATUS = \x1b[0mAll informations about your character");
     printf("\n   \x1b[31m%d/%d HP\n   \x1b[32m%d/%d MANA\x1b[0m\n", character->curr_hp, character->max_hp, character->curr_mana, character->max_mana);
     printf("\n   - \x1b[33mName :\x1b[0m");
@@ -315,9 +327,19 @@ void use(char *arg)
       return;
     }
   }
+  if(character->inventory[id].type == BOOK)
+  {
+    for(int i = 0; i < strlen(books[character->inventory[id].book_id].title)+3; i++)
+      printf("=");
+    printf("\n %s\n", books[character->inventory[id].book_id].title);
+    for(int i = 0; i < strlen(books[character->inventory[id].book_id].title)+3; i++)
+      printf("=");
+
+    printf("\n%s\n", books[character->inventory[id].book_id].text);
+  }
   else
   {
-    printf("%s is not a consumable\n", name);
+    printf("%s is not usable\n", name);
   }
   get_cmd();
 }
@@ -555,7 +577,7 @@ void situation()
     color_keywords(str, current_situtation->explore_names, 31);
     color_keywords(str, current_situtation->talk_names, 32);
     color_keywords(str, current_situtation->interact_names, 35);
-    printf("%s\n", str);
+    printf("\n%s\n", str);
 
     if(current_situtation->type == MERCHANT)
       show_shop();
@@ -648,26 +670,105 @@ void sell(char *arg)
         int confirmation = do_choice(question, choices, 2);
         if(confirmation == 0)
         {
+          if(character->inventory[id].value == 1)
+            character->gold_count ++;
+          else
             character->gold_count += (character->inventory[id].value * n) / 2;
             rmv_item(id, n);
         }
       }
       else
-      {
         printf("You don't have %d %s\n", n, character->inventory[id].name);
+    }
+    else
+      printf("There is no object at line %d in your inventory\n", id);
+  }
+  else
+    printf("Your not in a shop\n");
+
+  get_cmd();
+}
+
+void throw(char *arg)
+{
+  char *only_arg = strdup(arg);
+  strrmv(only_arg, "sell ");
+
+  char *args[2];
+  strsplit(args, only_arg, " ");
+  int id = atoi(args[0]);
+  int n = atoi(args[1]);
+  if(n==0)
+    n = 1;
+
+  char *name = character->inventory[id].name;
+  if(strcmp(name, "empty") != 0)
+  {
+    if(n <= character->inventory[id].count)
+    {
+      char question[255];
+      sprintf(question, "Are you sure you want to throw %s ?", name);
+      char yes[255];
+      sprintf(yes ,"Yes I want to throw my %s", name);
+      char *choices[2] = {yes,"Never mind"};
+      int confirmation = do_choice(question, choices, 2);
+      if(confirmation == 0)
+      {
+          rmv_item(id, n);
       }
     }
     else
-    {
-      printf("There is no object at line %d in your inventory\n", id);
-    }
+      printf("You don't have %d %s\n", n, character->inventory[id].name);
   }
   else
-  {
-    printf("Your not in a shop\n");
-  }
+    printf("There is no object at line %d in your inventory\n", id);
 
   get_cmd();
+}
+
+void load_cmd(char *arg)
+{
+  char *file_name = malloc(sizeof(char*));
+  strcpy(file_name, arg);
+  strrmv(file_name, "load ");
+
+  _Bool valid = false;
+  while(!valid)
+  {
+    if(strlen(file_name) < 1)
+      ask(file_name, 50, "Save name");
+
+    if(strlen(file_name) > 1)
+    {
+      if(strstr(file_name, ".save") == NULL )
+        strcat(file_name, ".save");
+
+      DIR *dir;
+      struct dirent *ent;
+      if ((dir = opendir ("./save/")) != NULL)
+      {
+        while ((ent = readdir (dir)) != NULL)
+        {
+          if(strcmp(file_name, ent->d_name) == 0)
+          {
+            valid = true;
+            load(file_name);
+          }
+        }
+        closedir (dir);
+      }
+      else
+      {
+        /* could not open directory */
+        perror ("");
+      }
+    }
+    if(!valid)
+    {
+      printf("Invalid name\n");
+      strcpy(file_name, "");
+    }
+  }
 }
 
 void exit_cmd(char *arg)

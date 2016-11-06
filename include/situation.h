@@ -51,7 +51,7 @@ typedef struct
   int count[30];
 } container_t;
 
-container_t containers[1];
+container_t containers[2];
 
 situation_t *current_situtation;
 situation_t situations[10];

@@ -16,6 +16,8 @@ void interact(char *arg);
 void go(char *arg);
 void buy(char *arg);
 void sell(char *arg);
+void throw(char *arg);
+void load_cmd(char *arg);
 void exit_cmd(char *arg);
 
 line_t *current_line;

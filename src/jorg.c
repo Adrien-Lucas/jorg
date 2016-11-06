@@ -26,51 +26,20 @@ void game_start(void)
 
     char className[40];
     get_class_name(className,character->class);
-    printf("\nWelcome to the world of Jorg %s the %s !", character->name, className);
-    puts("\nTo play you have to get commands, you can get any help at any moment by typing 'help'");
-    puts("\n\nAnd here start our story ...");
+    printf("\nWelcome to Jorg %s the %s", character->name, className);
+    puts("\nTo play you have to get commands, you can get any help at any moment by typing 'help'"
+    "\n\nAnd here starts our story ..."
+    "\n\nYou've been hired to escort a caravan from Breford to the Anarion city"
+    "\nin the name of the Jorg's cult."
+    "\nNear the city you were attacked by a group of bandit."
+    "\nYou didn't have the time to fight, you have been stunned ...");
 
     current_situtation = &situations[0];
     situation();
   }
   else
   {
-    _Bool valid = false;
-    while(!valid)
-    {
-      char *file_name = malloc(sizeof(char*));
-      ask(file_name, 50, "Save name");
-
-      if(strlen(file_name) > 1)
-      {
-        if(strstr(file_name, ".save") == NULL )
-          strcat(file_name, ".save");
-
-        DIR *dir;
-        struct dirent *ent;
-        if ((dir = opendir ("./save/")) != NULL)
-        {
-          while ((ent = readdir (dir)) != NULL)
-          {
-            if(strcmp(file_name, ent->d_name) == 0)
-            {
-              valid = true;
-              load(file_name);
-            }
-          }
-          closedir (dir);
-        }
-        else
-        {
-          /* could not open directory */
-          perror ("");
-        }
-      }
-      if(!valid)
-      {
-        printf("Invalid name\n");
-      }
-    }
+    load_cmd("");
   }
 }
 
@@ -163,7 +132,10 @@ void read_infos(info_t *infos, char *source)
       // - GET DICE Nb
       char *d_separation[2];
       strsplit(d_separation, vars, "d");
-      infos->dice_nb[size] = atoi(d_separation[0]);
+      if(strstr(d_separation[0], "lvl") != NULL)
+        infos->dice_nb[size] = character->level;
+      else
+        infos->dice_nb[size] = atoi(d_separation[0]);
       // - GET DICE TYPE AND BONUS
       if(strstr(d_separation[1], "+") != NULL)
       {

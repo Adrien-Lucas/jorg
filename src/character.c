@@ -13,24 +13,22 @@
 void character_create()
 {
   character = malloc(sizeof(character_t));
-  char *class_choice[4] = { "Warrior", "Wizard", "Rogue", "Priest" };
+  char *class_choice[4] = { "Warrior", "Wizard", "Rogue" };
   char *wealths[4] = { "A noble family", "A merchant family", "A peasant family", "What family ?" };
 
   printf("\nYou first have to create your character !");
   ask(character->name, 40, "What is your name ?");
-	character->class = do_choice("What are you ?", class_choice, 4);
+	character->class = do_choice("What are you ?", class_choice, 3);
   character->level = 1;
 
   int wealth = do_choice("Where did you come from ?", wealths, 4);
   printf("\n");
-  int gold = (4-wealth) * (4-wealth) * 20;
+  int gold = (4-wealth) * (4-wealth) * 5;
   character->gold_count = gold;
   character->stats = classes[character->class];
   //Fill inventory with empty items
   for(int i = 0; i < 31; i++)
-  {
     character->inventory[i] = items[0];
-  }
 
   character->has_companion = false;
   character->level = 1;
@@ -40,16 +38,16 @@ void character_create()
   switch (character->class)
   {
     case 0:
-      add_item(1,1);
-      add_item(7,1);
+      add_item(2,1);
+      add_item(23,1);
       character->max_mana = 5;
       character->life_dice = 10;
       character->bba = 1;
       //WARRIOR BASE STUFF
       break;
     case 1:
-      add_item(9,1);
-      add_item(8,1);
+      add_item(5,1);
+      add_item(21,1);
       add_spell(0);
       add_spell(1);
       character->max_mana = 25;
@@ -58,10 +56,12 @@ void character_create()
       //WIZARD BASE STUFF
       break;
     case 2:
+      add_item(4,1);
+      add_item(22,1);
+      character->max_mana = 5;
+      character->life_dice = 8;
+      character->bba = 1;
       //ROGUE BASE STUFF
-      break;
-    case 3:
-      //PRIEST BASE STUFF
       break;
   }
 
@@ -69,7 +69,7 @@ void character_create()
   character->eqquiped_armor = character->inventory[1];
 
   character->max_hp = character->life_dice + get_bonus(character->stats.constitution);
-  character->curr_hp = character->max_hp;
+  character->curr_hp = character->max_hp / 3 * 2;
   character->curr_mana = character->max_mana;
   info_t *armor = malloc(sizeof(info_t));
   read_infos(armor, character->eqquiped_armor.note);
@@ -118,6 +118,10 @@ void rmv_item(int index, int n)
   character->inventory[index].count -= n;
   if(character->inventory[index].count <= 0)
   {
+    if(strcmp(character->eqquiped_weap.name, name) == 0)
+    {
+      character->eqquiped_weap = items[1];
+    }
     character->inventory[index] = items[0];
     reorganize_inventory();
   }
@@ -239,7 +243,7 @@ void death()
 
   if(choice == 0)
   {
-
+    load_cmd("");
   }
   else
   {
@@ -259,6 +263,5 @@ void get_class_name(char answer[], class_t class)
     case 0: strcpy(answer, "Warrior"); break;
     case 1: strcpy(answer, "Wizard"); break;
     case 2: strcpy(answer, "Rogue"); break;
-    case 3: strcpy(answer, "Priest"); break;
   }
 }
